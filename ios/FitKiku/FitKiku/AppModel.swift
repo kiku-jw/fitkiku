@@ -1,0 +1,708 @@
+import Combine
+import Foundation
+
+@MainActor
+final class AppModel: ObservableObject {
+    @Published var serverAddress: String
+    @Published var pairingCode = ""
+    @Published private(set) var pendingAgentConsent: PendingAgentConsent?
+    @Published private(set) var pendingLegacyPairing: PendingLegacyPairing?
+    @Published private(set) var isPaired = false
+    @Published private(set) var localCredentialCleanupPending = false
+    @Published private(set) var healthAccessRequested = false
+    @Published private(set) var isBusy = false
+    @Published private(set) var today: DaySummary?
+    @Published private(set) var yesterday: DaySummary?
+    @Published private(set) var lastResults: [DaySyncResult] = []
+    @Published private(set) var lastSyncAt: Date?
+    @Published private(set) var deliveryStatus: DeviceDeliveryStatus?
+    @Published private(set) var deliveryStatusError: String?
+    @Published private(set) var statusMessage: String?
+    @Published private(set) var errorMessage: String?
+
+    private enum DefaultsKey {
+        static let serverAddress = "healthkit.server-address"
+        static let healthAccessRequested = "healthkit.access-requested"
+        static let lastSyncAt = "healthkit.last-sync-at"
+        static let localCredentialCleanupPending = "healthkit.local-credential-cleanup-pending"
+    }
+
+    private let defaults: UserDefaults
+    private let keychain: KeychainStore
+    private let deleteCredential: () throws -> Void
+    private let transport: any AppTransport
+    private let health: (any HealthDataReading)?
+    private let coordinator: SyncCoordinator?
+    private let setupError: String?
+    private let syntheticDemoRuntime: Bool
+    private var restored = false
+
+    var isSyntheticDemo: Bool { syntheticDemoRuntime }
+    var demoScrollTarget: String?
+    var shouldExpandDeliveryForDemo = false
+
+    #if DEBUG
+    private init(syntheticDemoDefaults defaults: UserDefaults) {
+        self.defaults = defaults
+        keychain = KeychainStore(service: "com.kikuai.fitkiku.synthetic-demo")
+        deleteCredential = {}
+        transport = SyntheticDemoTransport()
+        health = nil
+        coordinator = nil
+        setupError = nil
+        syntheticDemoRuntime = true
+        serverAddress = ""
+    }
+    #endif
+
+    init(
+        defaults: UserDefaults = .standard,
+        keychain: KeychainStore = KeychainStore(),
+        credentialCleanup: (() throws -> Void)? = nil,
+        transport: any AppTransport = APIClient(),
+        healthReader: (any HealthDataReading)? = nil,
+        outbox: ProtectedOutbox? = nil,
+        stateStore: SyncStateStore? = nil
+    ) {
+        self.defaults = defaults
+        self.keychain = keychain
+        deleteCredential = credentialCleanup ?? { try keychain.deleteCredential() }
+        self.transport = transport
+        syntheticDemoRuntime = false
+        serverAddress = defaults.string(forKey: DefaultsKey.serverAddress) ?? ""
+
+        do {
+            let health: any HealthDataReading
+            if let healthReader {
+                health = healthReader
+            } else {
+                health = try HealthKitClient()
+            }
+            let outbox = try outbox ?? ProtectedOutbox()
+            self.health = health
+            coordinator = SyncCoordinator(
+                health: health,
+                transport: transport,
+                stateStore: stateStore ?? SyncStateStore(),
+                outbox: outbox
+            )
+            setupError = nil
+        } catch {
+            health = nil
+            coordinator = nil
+            setupError = error.localizedDescription
+        }
+    }
+
+    func restore() async {
+        guard !syntheticDemoRuntime else { return }
+        if restored {
+            await refreshAfterForeground()
+            return
+        }
+        restored = true
+        isBusy = true
+        defer { isBusy = false }
+        errorMessage = nil
+        localCredentialCleanupPending = defaults.bool(
+            forKey: DefaultsKey.localCredentialCleanupPending
+        )
+        if localCredentialCleanupPending {
+            await retryLocalCredentialCleanup()
+            guard !localCredentialCleanupPending else {
+                restored = false
+                return
+            }
+        }
+        if let setupError {
+            errorMessage = setupError
+            return
+        }
+        healthAccessRequested = defaults.bool(forKey: DefaultsKey.healthAccessRequested)
+        lastSyncAt = defaults.object(forKey: DefaultsKey.lastSyncAt) as? Date
+        do {
+            guard let credential = try keychain.credential(),
+                  !serverAddress.isEmpty,
+                  let coordinator
+            else {
+                return
+            }
+            let baseURL = try APIClient.validatedBaseURL(serverAddress)
+            let installationID = try keychain.installationID()
+            await coordinator.configure(
+                SyncConfiguration(
+                    baseURL: baseURL,
+                    credential: credential,
+                    installationID: installationID
+                )
+            )
+            isPaired = true
+            if healthAccessRequested {
+                await registerObservers()
+            }
+            await refreshDeliveryStatus()
+            if healthAccessRequested {
+                await refreshSummaries()
+                await syncNow()
+            }
+        } catch {
+            restored = false
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func openPairLink(_ url: URL) async {
+        await loadPairingInput(url.absoluteString)
+    }
+
+    func loadPairingInput(_ value: String) async {
+        guard !localCredentialCleanupPending else {
+            errorMessage = "Finish removing the revoked local credential before connecting again."
+            return
+        }
+        guard !isPaired else {
+            errorMessage = "Disconnect the current server before opening another Pair Link."
+            return
+        }
+        guard !isBusy else { return }
+        clearPendingPairing()
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+
+        do {
+            guard let payload = try PairingPayload.parse(value) else {
+                throw PairingPayloadError.invalidPayload
+            }
+            switch payload {
+            case let .agent(link):
+                let preview = try await transport.previewAgentGrant(
+                    baseURL: link.baseURL,
+                    pairingToken: link.pairingToken
+                )
+                pendingAgentConsent = PendingAgentConsent(
+                    baseURL: link.baseURL,
+                    pairingToken: link.pairingToken,
+                    preview: preview
+                )
+                statusMessage = "Review the claimed agent and disclosures before approving."
+            case let .legacy(link):
+                pendingLegacyPairing = PendingLegacyPairing(
+                    baseURL: link.baseURL,
+                    code: link.code
+                )
+                statusMessage = "A legacy recovery link was loaded. Review the server before pairing."
+            }
+        } catch {
+            clearPendingPairing()
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func cancelPendingPairing() {
+        clearPendingPairing()
+        errorMessage = nil
+        statusMessage = "Connection request cancelled."
+    }
+
+    func approveAgentPairing() async {
+        guard let consent = pendingAgentConsent else { return }
+        guard let coordinator else {
+            errorMessage = setupError ?? "The native health client is unavailable."
+            return
+        }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+
+        do {
+            let installationID = try keychain.installationID()
+            let credential = try await transport.pairAgent(
+                baseURL: consent.baseURL,
+                pairingToken: consent.pairingToken,
+                installationID: installationID
+            )
+            try await completePairing(
+                baseURL: consent.baseURL,
+                credential: credential,
+                installationID: installationID,
+                coordinator: coordinator
+            )
+            clearPendingPairing()
+            statusMessage = "Connected. You can now review and grant Apple Health read access."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func approveLegacyPairing() async {
+        guard let pendingLegacyPairing else { return }
+        await pairLegacy(
+            baseURL: pendingLegacyPairing.baseURL,
+            code: pendingLegacyPairing.code
+        )
+    }
+
+    func pairLegacyManually() async {
+        guard !localCredentialCleanupPending else {
+            errorMessage = "Finish removing the revoked local credential before connecting again."
+            return
+        }
+        do {
+            let baseURL = try APIClient.validatedBaseURL(serverAddress)
+            await pairLegacy(baseURL: baseURL, code: pairingCode)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func requestHealthAccess() async {
+        guard let health else {
+            errorMessage = setupError ?? "Apple Health is unavailable on this device."
+            return
+        }
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+        do {
+            try await health.requestAuthorization()
+            healthAccessRequested = true
+            defaults.set(true, forKey: DefaultsKey.healthAccessRequested)
+            statusMessage = isPaired
+                ? "Health access was requested. Apple keeps read-denial status private."
+                : "Health access was requested. Connect a server later to sync."
+            await registerObservers()
+            await refreshSummaries()
+            if isPaired {
+                isBusy = false
+                await syncNow()
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func syncNow() async {
+        guard isPaired, healthAccessRequested, let coordinator else {
+            errorMessage = "Connect the app and request Apple Health access before syncing."
+            return
+        }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+        let results = await coordinator.synchronize(lookbackDays: 7)
+        lastResults = results
+        await refreshSummaries()
+        await refreshDeliveryStatus()
+
+        let failures = results.filter { $0.outcome == .failed }
+        let queued = results.filter { $0.outcome == .queued }
+        if let failure = failures.first {
+            errorMessage = failure.message ?? "Sync failed."
+        } else if let firstQueued = queued.first {
+            errorMessage = firstQueued.message
+                ?? "One or more days are queued on this iPhone and will be retried."
+        } else if !results.isEmpty {
+            let confirmedAt = Date()
+            lastSyncAt = confirmedAt
+            defaults.set(confirmedAt, forKey: DefaultsKey.lastSyncAt)
+            let changed = results.filter { $0.outcome != .unchanged }.count
+            statusMessage = changed == 0
+                ? "FitKiku is already up to date."
+                : "Checked \(results.count) Kyiv day(s); \(changed) confirmed by the server."
+        }
+    }
+
+    func disconnect() async {
+        guard isPaired else { return }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+
+        let credential: String
+        let baseURL: URL
+        let installationID: String
+        do {
+            guard let storedCredential = try keychain.credential() else {
+                throw APIClientError.invalidResponse
+            }
+            credential = storedCredential
+            baseURL = try APIClient.validatedBaseURL(serverAddress)
+            installationID = try keychain.installationID()
+        } catch {
+            errorMessage = "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+            return
+        }
+
+        do {
+            let outcome = try await transport.revokeDevice(
+                baseURL: baseURL,
+                credential: credential,
+                installationID: installationID
+            )
+            guard outcome == "revoked" else {
+                throw APIClientError.invalidResponse
+            }
+        } catch {
+            errorMessage = "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+            return
+        }
+
+        defaults.set(true, forKey: DefaultsKey.localCredentialCleanupPending)
+        localCredentialCleanupPending = true
+        if let coordinator {
+            await coordinator.disconnect()
+        }
+        isPaired = false
+        clearPendingPairing()
+        today = nil
+        yesterday = nil
+        lastResults = []
+        lastSyncAt = nil
+        deliveryStatus = nil
+        deliveryStatusError = nil
+        defaults.removeObject(forKey: DefaultsKey.lastSyncAt)
+        do {
+            try deleteCredential()
+            finishLocalCredentialCleanup()
+            statusMessage = "Server access was revoked and the local credential was removed."
+        } catch {
+            errorMessage = "Server access was revoked. Local secure-storage cleanup is still pending; retry below. \(error.localizedDescription)"
+        }
+    }
+
+    func retryLocalCredentialCleanup() async {
+        guard localCredentialCleanupPending
+            || defaults.bool(forKey: DefaultsKey.localCredentialCleanupPending)
+        else { return }
+        isBusy = true
+        errorMessage = nil
+        defer { isBusy = false }
+        localCredentialCleanupPending = true
+        do {
+            try deleteCredential()
+            finishLocalCredentialCleanup()
+            statusMessage = "The already-revoked local credential was removed."
+        } catch {
+            errorMessage = "Server access is already revoked, but local secure-storage cleanup is still pending. \(error.localizedDescription)"
+        }
+    }
+
+    private func pairLegacy(baseURL: URL, code: String) async {
+        guard let coordinator else {
+            errorMessage = setupError ?? "The native health client is unavailable."
+            return
+        }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+
+        do {
+            let installationID = try keychain.installationID()
+            let credential = try await transport.pair(
+                baseURL: baseURL,
+                code: code,
+                installationID: installationID
+            )
+            try await completePairing(
+                baseURL: baseURL,
+                credential: credential,
+                installationID: installationID,
+                coordinator: coordinator
+            )
+            pairingCode = ""
+            clearPendingPairing()
+            statusMessage = "Connected through recovery setup. Review Apple Health access next."
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func completePairing(
+        baseURL: URL,
+        credential: String,
+        installationID: String,
+        coordinator: SyncCoordinator
+    ) async throws {
+        try keychain.saveCredential(credential)
+        defaults.set(baseURL.absoluteString, forKey: DefaultsKey.serverAddress)
+        serverAddress = baseURL.absoluteString
+        await coordinator.configure(
+            SyncConfiguration(
+                baseURL: baseURL,
+                credential: credential,
+                installationID: installationID
+            )
+        )
+        isPaired = true
+        await refreshDeliveryStatus()
+        if healthAccessRequested {
+            await registerObservers()
+            await syncNow()
+        }
+    }
+
+    private func clearPendingPairing() {
+        pendingAgentConsent = nil
+        pendingLegacyPairing = nil
+    }
+
+    func refreshDeliveryStatus() async {
+        guard isPaired else {
+            deliveryStatus = nil
+            deliveryStatusError = nil
+            return
+        }
+        do {
+            guard let credential = try keychain.credential() else {
+                throw APIClientError.invalidResponse
+            }
+            let baseURL = try APIClient.validatedBaseURL(serverAddress)
+            let installationID = try keychain.installationID()
+            deliveryStatus = try await transport.deviceStatus(
+                baseURL: baseURL,
+                credential: credential,
+                installationID: installationID
+            )
+            deliveryStatusError = nil
+        } catch {
+            deliveryStatusError = "Delivery status is unavailable. \(error.localizedDescription)"
+        }
+    }
+
+    private func finishLocalCredentialCleanup() {
+        defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
+        localCredentialCleanupPending = false
+    }
+
+    private func registerObservers() async {
+        guard isPaired, healthAccessRequested, let coordinator else { return }
+        do {
+            try await coordinator.startObservers()
+        } catch {
+            statusMessage = "Background delivery could not be registered. Manual sync remains available."
+        }
+    }
+
+    private func refreshAfterForeground() async {
+        guard !localCredentialCleanupPending,
+              setupError == nil,
+              isPaired,
+              healthAccessRequested,
+              !isBusy
+        else { return }
+        isBusy = true
+        await registerObservers()
+        await syncNow()
+    }
+
+    private func refreshSummaries(referenceDate: Date = Date()) async {
+        guard let health else { return }
+        async let todayRead = health.readDay(AppDate.dayStart(referenceDate))
+        async let yesterdayRead = health.readDay(AppDate.addingDays(-1, to: referenceDate))
+        let (today, yesterday) = await (todayRead, yesterdayRead)
+        self.today = today
+        self.yesterday = yesterday
+    }
+}
+
+#if DEBUG
+enum DemoScenario: String, CaseIterable, Sendable {
+    case firstRun = "first-run"
+    case consent
+    case current
+    case partial
+    case unavailable
+    case revoked
+    case expired
+    case healthEmpty = "health-empty"
+
+    static func from(environment: [String: String]) -> DemoScenario? {
+        environment["FITKIKU_DEMO_SCENARIO"].flatMap(Self.init(rawValue:))
+    }
+}
+
+extension AppModel {
+    private convenience init(syntheticDemo scenario: DemoScenario) {
+        let suiteName = "com.kikuai.fitkiku.synthetic-demo.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        self.init(syntheticDemoDefaults: defaults)
+        apply(syntheticDemo: scenario)
+    }
+
+    static func syntheticDemo(_ scenario: DemoScenario) -> AppModel {
+        AppModel(syntheticDemo: scenario)
+    }
+
+    private func apply(syntheticDemo scenario: DemoScenario) {
+        switch scenario {
+        case .firstRun:
+            break
+        case .consent:
+            pendingAgentConsent = PendingAgentConsent(
+                baseURL: URL(string: "https://health.example")!,
+                pairingToken: "synthetic-demo-token-not-a-credential",
+                preview: AgentGrantPreview(
+                    assertedAgentName: "Kiku Assistant",
+                    serverOrigin: "https://health.example",
+                    scopes: [.steps, .sleep],
+                    expiresAt: "2099-08-08T21:00:00Z",
+                    retentionDisclosure: "Daily summaries are retained until you revoke access.",
+                    aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider."
+                )
+            )
+        case .current:
+            configureConnectedDemo(freshness: .current, partial: false)
+            statusMessage = "FitKiku is up to date."
+        case .partial:
+            configureConnectedDemo(freshness: .stale, partial: true)
+            demoScrollTarget = "yesterday"
+            shouldExpandDeliveryForDemo = true
+            statusMessage = "Recent delivery needs attention."
+        case .unavailable:
+            configureConnectedDemo(freshness: .unknown, partial: false)
+            demoScrollTarget = "yesterday"
+            shouldExpandDeliveryForDemo = true
+            deliveryStatus = nil
+            deliveryStatusError = "Delivery status is unavailable. Try again when you're online."
+        case .revoked:
+            localCredentialCleanupPending = true
+            statusMessage = "Server access is already revoked."
+        case .expired:
+            errorMessage = "This Pair Link has expired. Ask your agent for a new link."
+        case .healthEmpty:
+            healthAccessRequested = true
+            statusMessage = "No Apple Health summary is available yet. Missing data stays Unknown."
+        }
+    }
+
+    private func configureConnectedDemo(
+        freshness: DeviceDataFreshness,
+        partial: Bool
+    ) {
+        let currentDate = Date(timeIntervalSince1970: 1_775_600_000)
+        let previousDate = Date(timeIntervalSince1970: 1_775_513_600)
+        serverAddress = "https://health.example"
+        isPaired = true
+        healthAccessRequested = true
+        demoScrollTarget = "summaries"
+        today = Self.syntheticSummary(
+            localDate: "2026-04-08",
+            steps: 8_240,
+            sleepStart: "2026-04-07T21:30:00Z",
+            sleepEnd: "2026-04-08T05:10:00Z",
+            sleepCoverage: partial ? .partial : .complete
+        )
+        yesterday = Self.syntheticSummary(
+            localDate: "2026-04-07",
+            steps: 7_180,
+            sleepStart: "2026-04-06T22:05:00Z",
+            sleepEnd: "2026-04-07T05:20:00Z",
+            sleepCoverage: .complete
+        )
+        lastSyncAt = currentDate
+        deliveryStatus = DeviceDeliveryStatus(
+            lastServerReceivedAt: currentDate,
+            lastAgentFetchedAt: previousDate,
+            latestLocalDate: "2026-04-08",
+            lastDeviceGeneratedAt: currentDate,
+            latestCoverage: HealthCoverage(
+                steps: .complete,
+                sleep: partial ? .partial : .complete
+            ),
+            missingLocalDates: partial ? ["2026-04-06"] : [],
+            dataFreshness: freshness
+        )
+    }
+
+    private static func syntheticSummary(
+        localDate: String,
+        steps: Int,
+        sleepStart: String,
+        sleepEnd: String,
+        sleepCoverage: CoverageState
+    ) -> DaySummary {
+        DaySummary(
+            localDate: localDate,
+            steps: steps,
+            stepsCoverage: .complete,
+            sleepIntervals: [
+                SleepIntervalPayload(
+                    start: sleepStart,
+                    end: sleepEnd,
+                    category: .asleepUnspecified
+                ),
+            ],
+            sleepCoverage: sleepCoverage,
+            sources: [
+                HealthSourcePayload(
+                    name: "Synthetic Watch",
+                    bundleIdentifier: "example.synthetic.watch",
+                    productType: "Synthetic"
+                ),
+            ]
+        )
+    }
+}
+
+private struct SyntheticDemoTransport: AppTransport {
+    func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
+        throw APIClientError.transport
+    }
+
+    func ingest(
+        baseURL _: URL,
+        credential _: String,
+        snapshot _: HealthSnapshotPayload
+    ) async throws -> String {
+        throw APIClientError.transport
+    }
+
+    func previewAgentGrant(
+        baseURL _: URL,
+        pairingToken _: String
+    ) async throws -> AgentGrantPreview {
+        throw APIClientError.transport
+    }
+
+    func pairAgent(
+        baseURL _: URL,
+        pairingToken _: String,
+        installationID _: String
+    ) async throws -> String {
+        throw APIClientError.transport
+    }
+
+    func revokeDevice(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> String {
+        throw APIClientError.transport
+    }
+
+    func deviceStatus(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> DeviceDeliveryStatus {
+        throw APIClientError.transport
+    }
+}
+#endif
+
+struct PendingAgentConsent: Equatable, Sendable {
+    let baseURL: URL
+    let pairingToken: String
+    let preview: AgentGrantPreview
+}
+
+struct PendingLegacyPairing: Equatable, Sendable {
+    let baseURL: URL
+    let code: String
+}

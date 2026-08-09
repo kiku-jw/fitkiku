@@ -1,0 +1,96 @@
+# FitKiku
+
+<img src="ios/FitKiku/FitKiku/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="FitKiku app icon">
+
+FitKiku is a native iPhone companion that gives a personal AI agent recent,
+read-only Apple Health context after explicit user approval.
+
+The current product reads only daily Steps and Sleep. It shows the destination
+before connection, keeps unknown or partial coverage visible, reports delivery
+freshness, and lets the user revoke future access.
+
+## Current status
+
+FitKiku is in private owner testing and App Store preparation. The public
+repository contains the iOS client and its tests. It does **not** imply App Store
+availability, public enrollment, guaranteed background delivery, medical
+fitness, or a hosted gateway service for third parties.
+
+Proved so far:
+
+- native HealthKit authorization and foreground reads on a physical iPhone;
+- explicit Pair Link review before device pairing;
+- signed daily aggregate delivery and server confirmation;
+- bounded read-only agent access and revocation;
+- deterministic simulator tests for pairing, storage, canonical JSON, retries,
+  coverage, freshness, and malformed responses.
+
+Still under validation:
+
+- reliable unattended background delivery;
+- recovery after reboot and force-quit;
+- onboarding and retention with people outside the owner setup;
+- production gateway operations and App Store review.
+
+## Data boundary
+
+FitKiku requests read access to:
+
+- Steps;
+- Sleep Analysis.
+
+It does not write to Apple Health. The current schema sends daily step count,
+daily asleep minutes, coverage, source metadata, and delivery metadata to the
+HTTPS destination the user approves. Sleep interval timestamps and categories
+stay on the iPhone.
+
+Missing data is never converted to zero. FitKiku is not medical diagnosis,
+treatment, clearance, or emergency care.
+
+## Build the iOS app
+
+Requirements:
+
+- macOS with Xcode;
+- iOS 17 or later;
+- an iPhone for real HealthKit permission and data checks.
+
+1. Open `ios/FitKiku/FitKiku.xcodeproj`.
+2. Select the `FitKiku` target.
+3. Choose your own Personal Team and a unique bundle identifier.
+4. Keep both HealthKit entitlements enabled.
+5. Build for the simulator or your connected iPhone.
+
+Simulator tests do not prove real HealthKit authorization or background
+delivery. To run the deterministic test suite without writing DerivedData into
+the repository:
+
+```bash
+FITKIKU_DERIVED_DATA="$(mktemp -d /tmp/fitkiku-public-tests.XXXXXX)"
+xcodebuild \
+  -project ios/FitKiku/FitKiku.xcodeproj \
+  -scheme FitKiku \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -derivedDataPath "$FITKIKU_DERIVED_DATA" \
+  test
+```
+
+## Product links
+
+- Product: <https://kikuai.dev/fitkiku/>
+- Privacy: <https://kikuai.dev/fitkiku/privacy/>
+- Support: <https://kikuai.dev/fitkiku/support/>
+- Development notes: <https://t.me/kiku_ai>
+- Author: <https://github.com/kiku-jw>
+
+## Security and privacy reports
+
+Read [SECURITY.md](SECURITY.md). Never include health values, Health source
+identifiers, Pair Links, credentials, private server addresses, or raw logs in
+a public issue.
+
+## Source boundary
+
+This is a clean public history for the product-facing iOS client. The private
+owner bot, operational credentials, physical reliability ledger, and historical
+research workspace are intentionally not published here.

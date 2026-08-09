@@ -1,0 +1,18 @@
+.DS_Store
+DerivedData/
+*.xcresult
+*.xcarchive
+xcuserdata/
+*.moved-aside
+*.ipa
+
+# Local credentials and connection state
+.env
+.env.*
+.agent/
+*.pem
+*.key
+
+# Generated captures
+artifacts/
+tmp/

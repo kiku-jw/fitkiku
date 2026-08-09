@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "x-schema-version": "1.1",
+  "$id": "https://example.local/schemas/healthkit_daily_snapshot.schema.json",
+  "title": "HealthKitDailySnapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "device_installation_id",
+    "local_date",
+    "timezone",
+    "sync_revision",
+    "generated_at",
+    "idempotency_key",
+    "metrics",
+    "sources",
+    "signature"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["1.0", "1.1"]},
+    "device_installation_id": {"type": "string", "minLength": 16, "maxLength": 128},
+    "local_date": {"type": "string", "format": "date"},
+    "timezone": {"type": "string", "minLength": 1, "maxLength": 64},
+    "sync_revision": {"type": "integer", "minimum": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "idempotency_key": {"type": "string", "minLength": 16, "maxLength": 200},
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "steps": {"type": ["integer", "null"], "minimum": 0},
+        "asleep_minutes": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "maximum": 2160
+        },
+        "walking_running_distance_m": {"type": ["number", "null"], "minimum": 0},
+        "exercise_minutes": {"type": ["number", "null"], "minimum": 0, "maximum": 1440},
+        "stand_minutes": {"type": ["number", "null"], "minimum": 0, "maximum": 1440},
+        "active_energy_kcal_informational": {"type": ["number", "null"], "minimum": 0},
+        "body_mass_kg": {"type": ["number", "null"], "minimum": 20, "maximum": 400},
+        "resting_heart_rate_bpm": {"type": ["number", "null"], "minimum": 20, "maximum": 250}
+      }
+    },
+    "coverage": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["steps", "sleep"],
+      "properties": {
+        "steps": {"type": "string", "enum": ["complete", "partial", "unknown"]},
+        "sleep": {"type": "string", "enum": ["complete", "partial", "unknown"]}
+      }
+    },
+    "sleep_intervals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["start", "end", "category"],
+        "properties": {
+          "start": {"type": "string", "format": "date-time"},
+          "end": {"type": "string", "format": "date-time"},
+          "category": {
+            "type": "string",
+            "enum": ["in_bed", "asleep_unspecified", "awake", "core", "deep", "rem", "unknown"]
+          }
+        }
+      }
+    },
+    "workouts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["external_id", "activity_type", "start", "end", "duration_seconds"],
+        "properties": {
+          "external_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "activity_type": {"type": "string", "maxLength": 120},
+          "start": {"type": "string", "format": "date-time"},
+          "end": {"type": "string", "format": "date-time"},
+          "duration_seconds": {"type": "number", "minimum": 0},
+          "distance_m": {"type": ["number", "null"], "minimum": 0},
+          "active_energy_kcal_informational": {"type": ["number", "null"], "minimum": 0}
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "bundle_identifier"],
+        "properties": {
+          "name": {"type": "string", "maxLength": 200},
+          "bundle_identifier": {"type": "string", "maxLength": 240},
+          "product_type": {"type": ["string", "null"], "maxLength": 200}
+        }
+      }
+    },
+    "signature": {"type": "string", "minLength": 32, "maxLength": 1024}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "1.0"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "properties": {
+          "metrics": {"not": {"required": ["asleep_minutes"]}}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"schema_version": {"const": "1.1"}},
+        "required": ["schema_version"]
+      },
+      "then": {
+        "required": ["coverage", "sleep_intervals", "workouts"],
+        "properties": {
+          "coverage": {"type": "object"},
+          "sleep_intervals": {"maxItems": 0}
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "coverage": {
+                  "properties": {"sleep": {"const": "complete"}},
+                  "required": ["sleep"]
+                }
+              },
+              "required": ["coverage"]
+            },
+            "then": {
+              "properties": {
+                "metrics": {
+                  "required": ["asleep_minutes"],
+                  "properties": {
+                    "asleep_minutes": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 2160
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "coverage": {
+                  "properties": {"sleep": {"const": "unknown"}},
+                  "required": ["sleep"]
+                }
+              },
+              "required": ["coverage"]
+            },
+            "then": {
+              "properties": {
+                "metrics": {"not": {"required": ["asleep_minutes"]}}
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

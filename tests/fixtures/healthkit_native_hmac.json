@@ -1,0 +1,107 @@
+{
+  "credential": "synthetic-fixture-secret-2026",
+  "unsigned_payload": {
+    "schema_version": "1.0",
+    "device_installation_id": "fixture-installation-0001",
+    "local_date": "2026-08-02",
+    "timezone": "Europe/Kyiv",
+    "sync_revision": 3,
+    "generated_at": "2026-08-02T10:11:12Z",
+    "idempotency_key": "native:fixture-content-digest:r3",
+    "metrics": {
+      "steps": 12345
+    },
+    "coverage": {
+      "steps": "complete",
+      "sleep": "complete"
+    },
+    "sleep_intervals": [
+      {
+        "start": "2026-08-01T21:30:00Z",
+        "end": "2026-08-01T23:00:00Z",
+        "category": "core"
+      },
+      {
+        "start": "2026-08-01T23:00:00Z",
+        "end": "2026-08-02T01:00:00Z",
+        "category": "deep"
+      },
+      {
+        "start": "2026-08-02T01:00:00Z",
+        "end": "2026-08-02T04:00:00Z",
+        "category": "rem"
+      }
+    ],
+    "workouts": [],
+    "sources": [
+      {
+        "name": "Synthetic Fixture",
+        "bundle_identifier": "com.example.synthetic-health",
+        "product_type": "Watch7,1"
+      }
+    ]
+  },
+  "canonical_json": "{\"coverage\":{\"sleep\":\"complete\",\"steps\":\"complete\"},\"device_installation_id\":\"fixture-installation-0001\",\"generated_at\":\"2026-08-02T10:11:12Z\",\"idempotency_key\":\"native:fixture-content-digest:r3\",\"local_date\":\"2026-08-02\",\"metrics\":{\"steps\":12345},\"schema_version\":\"1.0\",\"sleep_intervals\":[{\"category\":\"core\",\"end\":\"2026-08-01T23:00:00Z\",\"start\":\"2026-08-01T21:30:00Z\"},{\"category\":\"deep\",\"end\":\"2026-08-02T01:00:00Z\",\"start\":\"2026-08-01T23:00:00Z\"},{\"category\":\"rem\",\"end\":\"2026-08-02T04:00:00Z\",\"start\":\"2026-08-02T01:00:00Z\"}],\"sources\":[{\"bundle_identifier\":\"com.example.synthetic-health\",\"name\":\"Synthetic Fixture\",\"product_type\":\"Watch7,1\"}],\"sync_revision\":3,\"timezone\":\"Europe/Kyiv\",\"workouts\":[]}",
+  "signature": "378c92c1880a6e3270b33f47c8928b437967b631a428072c773ff812079c843a",
+  "fractional_unsigned_payload": {
+    "schema_version": "1.0",
+    "device_installation_id": "fixture-installation-0001",
+    "local_date": "2026-08-02",
+    "timezone": "Europe/Kyiv",
+    "sync_revision": 3,
+    "generated_at": "2026-08-02T10:11:12.987000Z",
+    "idempotency_key": "native:fixture-content-digest:r3",
+    "metrics": {
+      "steps": 12345
+    },
+    "coverage": {
+      "steps": "complete",
+      "sleep": "complete"
+    },
+    "sleep_intervals": [
+      {
+        "start": "2026-08-01T21:00:00.100000Z",
+        "end": "2026-08-01T21:00:00.900000Z",
+        "category": "core"
+      }
+    ],
+    "workouts": [],
+    "sources": [
+      {
+        "name": "Synthetic Fixture",
+        "bundle_identifier": "com.example.synthetic-health",
+        "product_type": "Watch7,1"
+      }
+    ]
+  },
+  "fractional_canonical_json": "{\"coverage\":{\"sleep\":\"complete\",\"steps\":\"complete\"},\"device_installation_id\":\"fixture-installation-0001\",\"generated_at\":\"2026-08-02T10:11:12.987000Z\",\"idempotency_key\":\"native:fixture-content-digest:r3\",\"local_date\":\"2026-08-02\",\"metrics\":{\"steps\":12345},\"schema_version\":\"1.0\",\"sleep_intervals\":[{\"category\":\"core\",\"end\":\"2026-08-01T21:00:00.900000Z\",\"start\":\"2026-08-01T21:00:00.100000Z\"}],\"sources\":[{\"bundle_identifier\":\"com.example.synthetic-health\",\"name\":\"Synthetic Fixture\",\"product_type\":\"Watch7,1\"}],\"sync_revision\":3,\"timezone\":\"Europe/Kyiv\",\"workouts\":[]}",
+  "fractional_signature": "5582d16f9a48d20470df50e61b7969356e6f052a890dff3a340f917d24460323",
+  "aggregate_unsigned_payload": {
+    "schema_version": "1.1",
+    "device_installation_id": "fixture-installation-0001",
+    "local_date": "2026-08-02",
+    "timezone": "Europe/Kyiv",
+    "sync_revision": 4,
+    "generated_at": "2026-08-02T10:11:12Z",
+    "idempotency_key": "native:fixture-aggregate-content-digest:r4",
+    "metrics": {
+      "steps": 12345,
+      "asleep_minutes": 390
+    },
+    "coverage": {
+      "steps": "complete",
+      "sleep": "complete"
+    },
+    "sleep_intervals": [],
+    "workouts": [],
+    "sources": [
+      {
+        "name": "Synthetic Fixture",
+        "bundle_identifier": "com.example.synthetic-health",
+        "product_type": "Watch7,1"
+      }
+    ]
+  },
+  "aggregate_canonical_json": "{\"coverage\":{\"sleep\":\"complete\",\"steps\":\"complete\"},\"device_installation_id\":\"fixture-installation-0001\",\"generated_at\":\"2026-08-02T10:11:12Z\",\"idempotency_key\":\"native:fixture-aggregate-content-digest:r4\",\"local_date\":\"2026-08-02\",\"metrics\":{\"asleep_minutes\":390,\"steps\":12345},\"schema_version\":\"1.1\",\"sleep_intervals\":[],\"sources\":[{\"bundle_identifier\":\"com.example.synthetic-health\",\"name\":\"Synthetic Fixture\",\"product_type\":\"Watch7,1\"}],\"sync_revision\":4,\"timezone\":\"Europe/Kyiv\",\"workouts\":[]}",
+  "aggregate_signature": "7f6ae927e56fcb99ca22ee23c76a0b1b511eea5d65a4c0846536f7be5d03862e"
+}
