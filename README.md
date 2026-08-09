@@ -94,3 +94,7 @@ a public issue.
 This is a clean public history for the product-facing iOS client. The private
 owner bot, operational credentials, physical reliability ledger, and historical
 research workspace are intentionally not published here.
+
+## License
+
+FitKiku is licensed under the [GNU Affero General Public License v3.0](LICENSE).
