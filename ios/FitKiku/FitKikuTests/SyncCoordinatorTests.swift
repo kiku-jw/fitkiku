@@ -15,7 +15,8 @@ private actor FakeHealthReader: HealthDataReading {
         )
     }
 
-    func startObservers(onChange _: @escaping @Sendable () async -> Void) async throws {}
+    nonisolated func installObservers(onChange _: @escaping @Sendable () async -> Void) {}
+    func enableBackgroundDelivery() async throws {}
     func stopObservers() async {}
 }
 

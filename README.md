@@ -22,6 +22,10 @@ Proved so far:
 - explicit Pair Link review before device pairing;
 - signed daily aggregate delivery and server confirmation;
 - bounded read-only agent access and revocation;
+- HealthKit observer queries installed during application initialization, before
+  asynchronous connection restore;
+- ordinary foreground refresh preserves observer registration while explicit
+  disconnect still stops it;
 - deterministic simulator tests for pairing, storage, canonical JSON, retries,
   coverage, freshness, and malformed responses.
 
@@ -74,6 +78,10 @@ xcodebuild \
   -derivedDataPath "$FITKIKU_DERIVED_DATA" \
   test
 ```
+
+The latest observer-lifecycle correction has passed build-for-testing and a
+signed owner-device foreground recovery. Unattended delivery remains in the
+validation list above rather than being presented as guaranteed.
 
 ## Product links
 

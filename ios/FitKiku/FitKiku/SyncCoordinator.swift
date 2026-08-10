@@ -94,14 +94,11 @@ actor SyncCoordinator {
         return results
     }
 
-    func startObservers() async throws {
+    func enableBackgroundDelivery() async throws {
         guard configuration != nil else {
             throw SyncCoordinatorError.notConfigured
         }
-        try await health.startObservers { [weak self] in
-            guard let self else { return }
-            _ = await self.synchronize()
-        }
+        try await health.enableBackgroundDelivery()
     }
 
     func disconnect() async {

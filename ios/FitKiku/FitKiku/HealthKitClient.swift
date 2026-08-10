@@ -18,7 +18,8 @@ enum HealthKitClientError: LocalizedError {
 protocol HealthDataReading: Sendable {
     func requestAuthorization() async throws
     func readDay(_ dayStart: Date) async -> DaySummary
-    func startObservers(onChange: @escaping @Sendable () async -> Void) async throws
+    func installObservers(onChange: @escaping @Sendable () async -> Void)
+    func enableBackgroundDelivery() async throws
     func stopObservers() async
 }
 
@@ -79,8 +80,7 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         ).normalized
     }
 
-    func startObservers(onChange: @escaping @Sendable () async -> Void) async throws {
-        await stopObservers()
+    func installObservers(onChange: @escaping @Sendable () async -> Void) {
         let types: [HKSampleType] = [stepType, sleepType]
         let queries = types.map { type in
             HKObserverQuery(sampleType: type, predicate: nil) { _, completion, error in
@@ -91,10 +91,14 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
                 )
             }
         }
-        replaceObservers(with: queries)
+        guard storeObserversIfNeeded(queries) else { return }
         for query in queries {
             store.execute(query)
         }
+    }
+
+    func enableBackgroundDelivery() async throws {
+        let types: [HKSampleType] = [stepType, sleepType]
         do {
             for type in types {
                 try await store.enableBackgroundDelivery(for: type, frequency: .hourly)
@@ -268,10 +272,12 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         )
     }
 
-    private func replaceObservers(with queries: [HKObserverQuery]) {
+    private func storeObserversIfNeeded(_ queries: [HKObserverQuery]) -> Bool {
         observerLock.lock()
+        defer { observerLock.unlock() }
+        guard observerQueries.isEmpty else { return false }
         observerQueries = queries
-        observerLock.unlock()
+        return true
     }
 
     private func takeObservers() -> [HKObserverQuery] {

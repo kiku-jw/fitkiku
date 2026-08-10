@@ -6,14 +6,15 @@ final class FitKikuAppDelegate: NSObject, UIApplicationDelegate {
     let model: AppModel
 
     override init() {
+        let isUnitTest = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
         #if DEBUG
         if let scenario = DemoScenario.from(environment: ProcessInfo.processInfo.environment) {
             model = AppModel.syntheticDemo(scenario)
         } else {
-            model = AppModel()
+            model = AppModel(installHealthObserversAtLaunch: !isUnitTest)
         }
         #else
-        model = AppModel()
+        model = AppModel(installHealthObserversAtLaunch: !isUnitTest)
         #endif
         super.init()
     }

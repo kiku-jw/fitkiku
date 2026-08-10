@@ -36,6 +36,7 @@ final class AppModel: ObservableObject {
     private let setupError: String?
     private let syntheticDemoRuntime: Bool
     private var restored = false
+    private var observersInstalled = false
 
     var isSyntheticDemo: Bool { syntheticDemoRuntime }
     var demoScrollTarget: String?
@@ -62,7 +63,8 @@ final class AppModel: ObservableObject {
         transport: any AppTransport = APIClient(),
         healthReader: (any HealthDataReading)? = nil,
         outbox: ProtectedOutbox? = nil,
-        stateStore: SyncStateStore? = nil
+        stateStore: SyncStateStore? = nil,
+        installHealthObserversAtLaunch: Bool = true
     ) {
         self.defaults = defaults
         self.keychain = keychain
@@ -80,13 +82,18 @@ final class AppModel: ObservableObject {
             }
             let outbox = try outbox ?? ProtectedOutbox()
             self.health = health
-            coordinator = SyncCoordinator(
+            let coordinator = SyncCoordinator(
                 health: health,
                 transport: transport,
                 stateStore: stateStore ?? SyncStateStore(),
                 outbox: outbox
             )
+            self.coordinator = coordinator
             setupError = nil
+            if installHealthObserversAtLaunch {
+                Self.installObservers(health: health, coordinator: coordinator)
+                observersInstalled = true
+            }
         } catch {
             health = nil
             coordinator = nil
@@ -357,6 +364,7 @@ final class AppModel: ObservableObject {
         if let coordinator {
             await coordinator.disconnect()
         }
+        observersInstalled = false
         isPaired = false
         clearPendingPairing()
         today = nil
@@ -481,11 +489,26 @@ final class AppModel: ObservableObject {
     }
 
     private func registerObservers() async {
-        guard isPaired, healthAccessRequested, let coordinator else { return }
+        guard isPaired, healthAccessRequested, let health, let coordinator else { return }
+        if !observersInstalled {
+            Self.installObservers(health: health, coordinator: coordinator)
+            observersInstalled = true
+        }
         do {
-            try await coordinator.startObservers()
+            try await coordinator.enableBackgroundDelivery()
         } catch {
+            observersInstalled = false
             statusMessage = "Background delivery could not be registered. Manual sync remains available."
+        }
+    }
+
+    private static func installObservers(
+        health: any HealthDataReading,
+        coordinator: SyncCoordinator
+    ) {
+        health.installObservers { [weak coordinator] in
+            guard let coordinator else { return }
+            _ = await coordinator.synchronize()
         }
     }
 

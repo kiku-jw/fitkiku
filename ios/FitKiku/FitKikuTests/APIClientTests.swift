@@ -30,14 +30,17 @@ private final class MalformedResponseURLProtocol: URLProtocol {
     override func stopLoading() {}
 }
 
-private actor PairingTestHealthReader: HealthDataReading {
+private final class PairingTestHealthReader: HealthDataReading, @unchecked Sendable {
+    private let lock = NSLock()
+    private var observerInstallCount = 0
     private var observerStartCount = 0
+    private var observerStopCount = 0
     private var dayReadCount = 0
 
     func requestAuthorization() async throws {}
 
     func readDay(_ dayStart: Date) async -> DaySummary {
-        dayReadCount += 1
+        lock.withLock { dayReadCount += 1 }
         return DaySummary(
             localDate: AppDate.localDate(dayStart),
             steps: nil,
@@ -48,18 +51,32 @@ private actor PairingTestHealthReader: HealthDataReading {
         )
     }
 
-    func startObservers(onChange _: @escaping @Sendable () async -> Void) async throws {
-        observerStartCount += 1
+    func installObservers(onChange _: @escaping @Sendable () async -> Void) {
+        lock.withLock { observerInstallCount += 1 }
     }
 
-    func stopObservers() async {}
-
-    func observerStarts() -> Int {
-        observerStartCount
+    func enableBackgroundDelivery() async throws {
+        lock.withLock { observerStartCount += 1 }
     }
 
-    func dayReads() -> Int {
-        dayReadCount
+    func stopObservers() async {
+        lock.withLock { observerStopCount += 1 }
+    }
+
+    func observerInstalls() async -> Int {
+        lock.withLock { observerInstallCount }
+    }
+
+    func observerStarts() async -> Int {
+        lock.withLock { observerStartCount }
+    }
+
+    func observerStops() async -> Int {
+        lock.withLock { observerStopCount }
+    }
+
+    func dayReads() async -> Int {
+        lock.withLock { dayReadCount }
     }
 }
 
@@ -617,6 +634,8 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(harness.model.deliveryStatus)
         XCTAssertNil(harness.model.deliveryStatusError)
         XCTAssertEqual(harness.model.statusMessage, "Server access was revoked and the local credential was removed.")
+        let observerStops = await harness.health.observerStops()
+        XCTAssertEqual(observerStops, 1)
     }
 
     @MainActor
@@ -639,6 +658,19 @@ final class APIClientTests: XCTestCase {
             includingPropertiesForKeys: nil
         ).filter { $0.pathExtension == "json" }
         XCTAssertEqual(queuedFiles.count, 7)
+    }
+
+    @MainActor
+    func testModelInstallsHealthObserversSynchronouslyBeforeRestore() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+
+        let observerInstalls = await harness.health.observerInstalls()
+        let observerStarts = await harness.health.observerStarts()
+        let observerStops = await harness.health.observerStops()
+        XCTAssertEqual(observerInstalls, 1)
+        XCTAssertEqual(observerStarts, 0)
+        XCTAssertEqual(observerStops, 0)
     }
 
     @MainActor
@@ -665,6 +697,8 @@ final class APIClientTests: XCTestCase {
             outbox: try ProtectedOutbox(directory: outboxDirectory),
             stateStore: SyncStateStore(suiteName: suiteName)
         )
+        let observerInstalls = await health.observerInstalls()
+        XCTAssertEqual(observerInstalls, 1)
         defer {
             try? keychain.deleteCredential()
             defaults.removePersistentDomain(forName: suiteName)
@@ -698,16 +732,22 @@ final class APIClientTests: XCTestCase {
         await harness.model.restore()
 
         let readsBeforeForeground = await harness.health.dayReads()
+        let installsBeforeForeground = await harness.health.observerInstalls()
         let observersBeforeForeground = await harness.health.observerStarts()
+        let stopsBeforeForeground = await harness.health.observerStops()
         let ingestsBeforeForeground = await harness.transport.counts().ingest
 
         await harness.model.restore()
 
         let readsAfterForeground = await harness.health.dayReads()
+        let installsAfterForeground = await harness.health.observerInstalls()
         let observersAfterForeground = await harness.health.observerStarts()
+        let stopsAfterForeground = await harness.health.observerStops()
         let ingestsAfterForeground = await harness.transport.counts().ingest
         XCTAssertEqual(readsAfterForeground - readsBeforeForeground, 9)
+        XCTAssertEqual(installsAfterForeground, installsBeforeForeground)
         XCTAssertEqual(observersAfterForeground - observersBeforeForeground, 1)
+        XCTAssertEqual(stopsAfterForeground, stopsBeforeForeground)
         XCTAssertEqual(ingestsAfterForeground, ingestsBeforeForeground)
         XCTAssertTrue(harness.model.lastResults.allSatisfy { $0.outcome == .unchanged })
     }
