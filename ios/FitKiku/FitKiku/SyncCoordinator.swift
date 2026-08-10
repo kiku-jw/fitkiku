@@ -103,10 +103,10 @@ actor SyncCoordinator {
         try await health.enableBackgroundDelivery()
     }
 
-    func disconnect() async {
+    func disconnect() async throws {
         configuration = nil
         await health.stopObservers()
-        try? await outbox.clear()
+        try await outbox.clear()
         await stateStore.clear()
     }
 

@@ -213,27 +213,30 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
                     )
                     return
                 }
-                let validSamples = samples.filter { sample in
+                let daySamples = samples.filter { sample in
                     sample.endDate > sample.startDate
                         && sample.startDate < windowEnd
                         && sample.endDate > windowStart
+                        && Self.isAssignedToSleepDay(
+                            start: sample.startDate,
+                            end: sample.endDate,
+                            dayStart: dayStart
+                        )
                 }
-                guard let latestEnd = validSamples.map(\.endDate).max(),
-                      AppDate.localDate(latestEnd) == AppDate.localDate(dayStart)
-                else {
+                guard !daySamples.isEmpty else {
                     continuation.resume(
                         returning: SleepRead(intervals: [], coverage: .unknown, sources: [])
                     )
                     return
                 }
-                let intervals = validSamples.map { sample in
+                let intervals = daySamples.map { sample in
                     SleepIntervalPayload(
                         start: AppDate.timestamp(sample.startDate),
                         end: AppDate.timestamp(sample.endDate),
                         category: Self.sleepCategory(sample.value)
                     )
                 }
-                let sources = validSamples.map(Self.sourcePayload).uniquedAndSorted()
+                let sources = daySamples.map(Self.sourcePayload).uniquedAndSorted()
                 let containsSleep = intervals.contains { $0.category.countsAsSleep }
                 continuation.resume(
                     returning: SleepRead(
@@ -264,6 +267,10 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         default:
             .unknown
         }
+    }
+
+    static func isAssignedToSleepDay(start: Date, end: Date, dayStart: Date) -> Bool {
+        end > start && AppDate.localDate(end) == AppDate.localDate(dayStart)
     }
 
     private static func sourcePayload(_ sample: HKSample) -> HealthSourcePayload {

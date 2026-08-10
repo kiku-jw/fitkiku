@@ -363,10 +363,6 @@ final class AppModel: ObservableObject {
 
         defaults.set(true, forKey: DefaultsKey.localCredentialCleanupPending)
         localCredentialCleanupPending = true
-        if let coordinator {
-            await coordinator.disconnect()
-        }
-        observersInstalled = false
         isPaired = false
         clearPendingPairing()
         today = nil
@@ -377,11 +373,11 @@ final class AppModel: ObservableObject {
         deliveryStatusError = nil
         defaults.removeObject(forKey: DefaultsKey.lastSyncAt)
         do {
-            try deleteCredential()
+            try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
-            statusMessage = "Server access was revoked and the local credential was removed."
+            statusMessage = "Server access was revoked and local protected data was removed."
         } catch {
-            errorMessage = "Server access was revoked. Local secure-storage cleanup is still pending; retry below. \(error.localizedDescription)"
+            errorMessage = "Server access was revoked. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
         }
     }
 
@@ -394,11 +390,11 @@ final class AppModel: ObservableObject {
         defer { isBusy = false }
         localCredentialCleanupPending = true
         do {
-            try deleteCredential()
+            try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
-            statusMessage = "The already-revoked local credential was removed."
+            statusMessage = "Local protected data for the revoked connection was removed."
         } catch {
-            errorMessage = "Server access is already revoked, but local secure-storage cleanup is still pending. \(error.localizedDescription)"
+            errorMessage = "Server access is already revoked, but local protected-data cleanup is still pending. \(error.localizedDescription)"
         }
     }
 
@@ -488,6 +484,19 @@ final class AppModel: ObservableObject {
     private func finishLocalCredentialCleanup() {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
         localCredentialCleanupPending = false
+    }
+
+    private func finishRevokedLocalCleanup() async throws {
+        if let coordinator {
+            do {
+                try await coordinator.disconnect()
+            } catch {
+                observersInstalled = false
+                throw error
+            }
+        }
+        observersInstalled = false
+        try deleteCredential()
     }
 
     private func registerObservers() async {

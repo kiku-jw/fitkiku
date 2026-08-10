@@ -173,6 +173,59 @@ final class DaySummaryTests: XCTestCase {
         )
     }
 
+    func testSleepSamplesAreAssignedByKyivWakeDate() throws {
+        let targetDay = try XCTUnwrap(AppDate.parseTimestamp("2026-08-01T21:00:00Z"))
+        let previousDayNapStart = try XCTUnwrap(
+            AppDate.parseTimestamp("2026-08-01T10:00:00Z")
+        )
+        let previousDayNapEnd = try XCTUnwrap(
+            AppDate.parseTimestamp("2026-08-01T11:00:00Z")
+        )
+        let overnightStart = try XCTUnwrap(AppDate.parseTimestamp("2026-08-01T20:30:00Z"))
+        let overnightEnd = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T04:30:00Z"))
+        let targetDayNapStart = try XCTUnwrap(
+            AppDate.parseTimestamp("2026-08-02T11:00:00Z")
+        )
+        let targetDayNapEnd = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T12:00:00Z"))
+        let nextNightEnd = try XCTUnwrap(AppDate.parseTimestamp("2026-08-03T04:30:00Z"))
+
+        XCTAssertFalse(
+            HealthKitClient.isAssignedToSleepDay(
+                start: previousDayNapStart,
+                end: previousDayNapEnd,
+                dayStart: targetDay
+            )
+        )
+        XCTAssertTrue(
+            HealthKitClient.isAssignedToSleepDay(
+                start: overnightStart,
+                end: overnightEnd,
+                dayStart: targetDay
+            )
+        )
+        XCTAssertTrue(
+            HealthKitClient.isAssignedToSleepDay(
+                start: targetDayNapStart,
+                end: targetDayNapEnd,
+                dayStart: targetDay
+            )
+        )
+        XCTAssertFalse(
+            HealthKitClient.isAssignedToSleepDay(
+                start: targetDayNapStart,
+                end: nextNightEnd,
+                dayStart: targetDay
+            )
+        )
+        XCTAssertFalse(
+            HealthKitClient.isAssignedToSleepDay(
+                start: overnightEnd,
+                end: overnightStart,
+                dayStart: targetDay
+            )
+        )
+    }
+
     func testPlannerUsesMonotonicRevisionAndStableContentKey() throws {
         let summary = DaySummary(
             localDate: "2026-08-02",

@@ -548,6 +548,19 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(link.pairingToken, validToken)
     }
 
+    func testBrandedHTTPSPairLinkParsesOpaqueToken() throws {
+        let payload = try XCTUnwrap(
+            PairingPayload.parse(
+                "https://kikuai.dev/fitkiku/pair?server=https%3A%2F%2Fkikuai.dev&token=\(validToken)"
+            )
+        )
+        guard case let .agent(link) = payload else {
+            return XCTFail("Expected agent Pair Link")
+        }
+        XCTAssertEqual(link.baseURL.absoluteString, "https://kikuai.dev")
+        XCTAssertEqual(link.pairingToken, validToken)
+    }
+
     func testLegacyPairLinkStillParsesAsRecoveryFallback() throws {
         let payload = try XCTUnwrap(
             PairingPayload.parse(
@@ -566,6 +579,11 @@ final class APIClientTests: XCTestCase {
         let oversizedToken = String(repeating: "a", count: 129)
         let invalidLinks = [
             "https://pair?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
+            "https://example.com/fitkiku/pair?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
+            "https://kikuai.dev/fitkiku/pair?server=https%3A%2F%2Fattacker.example&token=\(validToken)",
+            "https://kikuai.dev/fitkiku/pair/?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
+            "https://kikuai.dev/fitkiku/connect?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
+            "https://kikuai.dev:443/fitkiku/pair?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
             "fitkiku-health://connect?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
             "fitkiku-health://user@pair?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
             "fitkiku-health://pair/path?server=https%3A%2F%2Ffitkiku.example&token=\(validToken)",
@@ -635,9 +653,45 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(try harness.keychain.credential())
         XCTAssertNil(harness.model.deliveryStatus)
         XCTAssertNil(harness.model.deliveryStatusError)
-        XCTAssertEqual(harness.model.statusMessage, "Server access was revoked and the local credential was removed.")
+        XCTAssertEqual(
+            harness.model.statusMessage,
+            "Server access was revoked and local protected data was removed."
+        )
         let observerStops = await harness.health.observerStops()
         XCTAssertEqual(observerStops, 1)
+    }
+
+    @MainActor
+    func testDisconnectBlocksReconnectUntilProtectedOutboxCleanupSucceeds() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+        await harness.transport.allowRevocation()
+        try FileManager.default.removeItem(at: harness.outboxDirectory)
+        try Data().write(to: harness.outboxDirectory)
+
+        await harness.model.disconnect()
+
+        XCTAssertFalse(harness.model.isPaired)
+        XCTAssertTrue(harness.model.localCredentialCleanupPending)
+        XCTAssertNotNil(try harness.keychain.credential())
+        XCTAssertTrue(harness.model.errorMessage?.contains("cleanup is still pending") == true)
+
+        try FileManager.default.removeItem(at: harness.outboxDirectory)
+        try FileManager.default.createDirectory(
+            at: harness.outboxDirectory,
+            withIntermediateDirectories: true
+        )
+        await harness.model.retryLocalCredentialCleanup()
+
+        XCTAssertFalse(harness.model.localCredentialCleanupPending)
+        XCTAssertNil(try harness.keychain.credential())
+        XCTAssertEqual(
+            harness.model.statusMessage,
+            "Local protected data for the revoked connection was removed."
+        )
     }
 
     @MainActor
@@ -828,7 +882,10 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertFalse(model.localCredentialCleanupPending)
         XCTAssertEqual(cleanup.attempts, 2)
-        XCTAssertEqual(model.statusMessage, "The already-revoked local credential was removed.")
+        XCTAssertEqual(
+            model.statusMessage,
+            "Local protected data for the revoked connection was removed."
+        )
     }
 
     @MainActor

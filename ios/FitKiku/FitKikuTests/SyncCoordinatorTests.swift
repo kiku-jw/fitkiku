@@ -198,6 +198,42 @@ final class SyncCoordinatorTests: XCTestCase {
         XCTAssertTrue(uploadAttempts.isEmpty)
     }
 
+    func testDisconnectFailsClosedWhenProtectedOutboxCannotBeCleared() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let suiteName = "FitKikuTests.\(UUID().uuidString)"
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        let outbox = try ProtectedOutbox(directory: directory)
+        let coordinator = SyncCoordinator(
+            health: FakeHealthReader(),
+            stateStore: SyncStateStore(suiteName: suiteName, storageKey: "confirmed"),
+            outbox: outbox
+        )
+        await coordinator.configure(
+            SyncConfiguration(
+                baseURL: try XCTUnwrap(URL(string: "https://fitkiku.example")),
+                credential: "synthetic-credential",
+                installationID: "fixture-installation-0001"
+            )
+        )
+        try FileManager.default.removeItem(at: directory)
+        try Data().write(to: directory)
+
+        do {
+            try await coordinator.disconnect()
+            XCTFail("Expected protected outbox cleanup to fail")
+        } catch {
+            // A cleanup error must be visible to the app so it can block re-pairing.
+        }
+
+        let result = await coordinator.synchronize(lookbackDays: 1)
+        XCTAssertEqual(result.first?.outcome, .failed)
+        XCTAssertTrue(result.first?.message?.contains("Pair the app") == true)
+    }
+
     func testLostResponseRetriesSameRevisionAndIdempotencyKey() async throws {
         let reference = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T12:00:00Z"))
         let lostDate = AppDate.localDate(reference)
