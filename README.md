@@ -105,4 +105,18 @@ research workspace are intentionally not published here.
 
 ## License
 
-FitKiku is licensed under the [GNU Affero General Public License v3.0](LICENSE).
+FitKiku uses a narrow mixed-license boundary:
+
+- the iOS client and its tests use [MPL-2.0](LICENSES/MPL-2.0.txt), so
+  distributed changes to those source files remain open while they can still
+  be combined with separately licensed software;
+- public schemas and synthetic fixtures use
+  [Apache-2.0](LICENSES/Apache-2.0.txt) for straightforward reuse by agent and
+  gateway implementers; and
+- the FitKiku name and official app icon are not included in those software
+  license grants.
+
+Read [LICENSE](LICENSE) for the exact path boundary and
+[TRADEMARKS.md](TRADEMARKS.md) for the brand policy. Earlier Git revisions
+published under AGPL-3.0 remain available under the grants already made for
+those revisions.

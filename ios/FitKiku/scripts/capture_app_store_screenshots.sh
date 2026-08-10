@@ -1,4 +1,6 @@
 #!/bin/zsh
+# SPDX-License-Identifier: MPL-2.0
+
 set -euo pipefail
 
 SCRIPT_DIR=${0:A:h}
