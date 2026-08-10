@@ -36,7 +36,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>FitKiku reads your steps and sleep to synchronize daily accountability summaries.</string>
+	<string>FitKiku reads your Steps and Sleep so your approved agent can use recent daily summaries.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

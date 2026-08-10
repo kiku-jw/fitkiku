@@ -178,19 +178,20 @@ enum PairingPayload: Equatable, Sendable {
     case agent(AgentPairingLink)
     case legacy(LegacyPairingLink)
 
+    private static let brandedHTTPSHost = "kikuai.dev"
+    private static let brandedHTTPSPath = "/fitkiku/pair"
+
     static func parse(_ value: String) throws -> PairingPayload? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return nil
         }
         guard let components = URLComponents(string: trimmed),
-              components.scheme?.lowercased() == "fitkiku-health",
-              components.host?.lowercased() == "pair",
               components.user == nil,
               components.password == nil,
               components.port == nil,
-              components.path.isEmpty,
-              components.fragment == nil
+              components.fragment == nil,
+              isAllowedEntryPoint(components)
         else {
             throw PairingPayloadError.invalidPayload
         }
@@ -212,6 +213,13 @@ enum PairingPayload: Equatable, Sendable {
         } catch {
             throw PairingPayloadError.invalidPayload
         }
+        if isBrandedHTTPSEntryPoint(components),
+           !(baseURL.scheme == "https"
+               && baseURL.host?.lowercased() == brandedHTTPSHost
+               && baseURL.port == nil)
+        {
+            throw PairingPayloadError.invalidPayload
+        }
 
         if Set(values.keys) == ["server", "token"], let token = values["token"] {
             guard APIClient.isValidPairingToken(token) else {
@@ -227,6 +235,21 @@ enum PairingPayload: Equatable, Sendable {
             return .legacy(LegacyPairingLink(baseURL: baseURL, code: code))
         }
         throw PairingPayloadError.invalidPayload
+    }
+
+    private static func isAllowedEntryPoint(_ components: URLComponents) -> Bool {
+        let scheme = components.scheme?.lowercased()
+        let host = components.host?.lowercased()
+        let isPrivateScheme = scheme == "fitkiku-health"
+            && host == "pair"
+            && components.path.isEmpty
+        return isPrivateScheme || isBrandedHTTPSEntryPoint(components)
+    }
+
+    private static func isBrandedHTTPSEntryPoint(_ components: URLComponents) -> Bool {
+        components.scheme?.lowercased() == "https"
+            && components.host?.lowercased() == brandedHTTPSHost
+            && components.path == brandedHTTPSPath
     }
 }
 

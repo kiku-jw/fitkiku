@@ -335,7 +335,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader(
                     title: "Allow Apple Health",
-                    detail: "Step 2 of 2",
+                    detail: model.isPaired ? "Step 2 of 2" : "Available anytime",
                     systemImage: "heart.fill",
                     tint: .red
                 )

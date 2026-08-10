@@ -22,6 +22,10 @@ Proved so far:
 - explicit Pair Link review before device pairing;
 - signed daily aggregate delivery and server confirmation;
 - bounded read-only agent access and revocation;
+- sleep attribution by the Europe/Kyiv wake date, including exclusion of
+  previous-day naps from the next daily summary;
+- fail-closed disconnect cleanup: a new destination cannot be paired while a
+  protected local outbox or revoked credential remains;
 - HealthKit observer queries installed during application initialization, before
   asynchronous connection restore;
 - ordinary foreground refresh preserves observer registration while explicit
@@ -35,6 +39,10 @@ Still under validation:
 - recovery after reboot and force-quit;
 - onboarding and retention with people outside the owner setup;
 - production gateway operations and App Store review.
+
+The iPhone companion is intended to remain free. An optional managed hosted
+gateway is a later validation candidate, not a currently available service;
+this repository contains no checkout or active subscription flow.
 
 ## Data boundary
 
@@ -82,6 +90,12 @@ xcodebuild \
 The latest observer-lifecycle correction has passed build-for-testing and a
 signed owner-device foreground recovery. Unattended delivery remains in the
 validation list above rather than being presented as guaranteed.
+
+The client also parses a future exact
+`https://kikuai.dev/fitkiku/pair` entry point, but Universal Links are not
+enabled in Personal Team builds. Public tap-to-app onboarding therefore
+remains gated on the paid Apple capability, associated-domain file, and a
+final signed archive.
 
 ## Product links
 

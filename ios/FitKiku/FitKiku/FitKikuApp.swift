@@ -46,6 +46,10 @@ struct FitKikuApp: App {
                 .onOpenURL { url in
                     Task { await appDelegate.model.openPairLink(url) }
                 }
+                .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                    guard let url = activity.webpageURL else { return }
+                    Task { await appDelegate.model.openPairLink(url) }
+                }
                 .onChange(of: scenePhase) { _, newPhase in
                     guard newPhase == .active,
                           !appDelegate.model.isSyntheticDemo,
