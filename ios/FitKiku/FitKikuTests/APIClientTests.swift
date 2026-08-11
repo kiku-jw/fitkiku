@@ -294,6 +294,8 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(preview.serverOrigin, "https://fitkiku.example")
         XCTAssertEqual(preview.scopes, [.steps, .sleep])
         XCTAssertEqual(preview.expiresAt, "2099-08-02T12:00:00Z")
+        XCTAssertNotEqual(preview.formattedExpiresAt, preview.expiresAt)
+        XCTAssertFalse(preview.formattedExpiresAt.contains("T12:00:00Z"))
     }
 
     func testAgentPreviewMapsMalformedJSONToInvalidResponse() async throws {
@@ -948,6 +950,12 @@ final class APIClientTests: XCTestCase {
         let firstRun = AppModel.syntheticDemo(.firstRun)
         let consent = AppModel.syntheticDemo(.consent)
         let revoked = AppModel.syntheticDemo(.revoked)
+
+        XCTAssertEqual(
+            consent.pendingAgentConsent?.preview.retentionDisclosure,
+            "Daily summaries are retained until deletion is requested. "
+                + "Revoking stops future access but does not delete stored summaries."
+        )
         let expired = AppModel.syntheticDemo(.expired)
         let healthEmpty = AppModel.syntheticDemo(.healthEmpty)
 

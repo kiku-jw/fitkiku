@@ -235,7 +235,7 @@ struct ContentView: View {
             Text(NativeHealthDisclosure.outbound)
                 .font(.footnote)
                 .foregroundStyle(Color.fitKikuSecondaryText)
-            detailRow("Request expires", value: consent.preview.expiresAt)
+            detailRow("Request expires", value: consent.preview.formattedExpiresAt)
             disclosure(title: "Retention", body: consent.preview.retentionDisclosure)
             disclosure(title: "AI processing", body: consent.preview.aiProcessingDisclosure)
             Text("Apple Health permission is a separate next step.")
