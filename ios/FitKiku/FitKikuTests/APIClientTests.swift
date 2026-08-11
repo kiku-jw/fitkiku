@@ -900,6 +900,31 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(DemoScenario.from(environment: [:]))
     }
 
+    func testSetupPromptRequiresPairLinkAndRejectsPasswordsAndExports() {
+        XCTAssertEqual(FitKikuSetupPrompt.buttonTitle, "Copy setup prompt")
+        XCTAssertTrue(FitKikuSetupPrompt.summary.contains("AI agent"))
+        XCTAssertTrue(FitKikuSetupPrompt.summary.contains("cannot connect yet"))
+        XCTAssertTrue(FitKikuSetupPrompt.message.contains("https://kikuai.dev/fitkiku/"))
+        XCTAssertTrue(FitKikuSetupPrompt.message.contains("return a FitKiku Pair Link"))
+        XCTAssertTrue(FitKikuSetupPrompt.message.contains("Do not ask me for server passwords"))
+        XCTAssertTrue(FitKikuSetupPrompt.message.contains("API tokens"))
+        XCTAssertTrue(FitKikuSetupPrompt.message.contains("Apple Health export"))
+    }
+
+    func testSettingsLinksKeepProductAndSupportWithoutCreatorProfile() {
+        XCTAssertEqual(
+            FitKikuLinks.all,
+            [
+                FitKikuLinks.website,
+                FitKikuLinks.source,
+                FitKikuLinks.telegram,
+                FitKikuLinks.privacy,
+                FitKikuLinks.support,
+            ]
+        )
+        XCTAssertFalse(FitKikuLinks.all.contains(URL(string: "https://github.com/kiku-jw")!))
+    }
+
     @MainActor
     func testSyntheticDemoRestoreDoesNotReplaceDeterministicState() async {
         let model = AppModel.syntheticDemo(.partial)

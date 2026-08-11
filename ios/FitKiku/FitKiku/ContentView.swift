@@ -2,14 +2,15 @@
 
 import Foundation
 import SwiftUI
+import UIKit
 
 struct ContentView: View {
     @ObservedObject var model: AppModel
     @State private var pastedPairLink = ""
-    @State private var showManualPairLink = false
-    @State private var showRecoverySetup = false
+    @State private var showAdvancedSetup = false
     @State private var showSettings = false
     @State private var showDeliveryDetails: Bool
+    @State private var copiedSetupPrompt = false
     @ScaledMetric(relativeTo: .body) private var minimumControlHeight = 44
 
     init(model: AppModel) {
@@ -28,13 +29,15 @@ struct ContentView: View {
                         } else {
                             pairingCard
                         }
-                        healthAccessCard
-                        if model.healthAccessRequested {
-                            summaries
-                        }
-                        if model.isPaired {
-                            syncCard
-                                .id("delivery")
+                        if !isReviewingConnection {
+                            healthAccessCard
+                            if model.healthAccessRequested {
+                                summaries
+                            }
+                            if model.isPaired {
+                                syncCard
+                                    .id("delivery")
+                            }
                         }
                         privacyNote
                         #if DEBUG
@@ -72,7 +75,7 @@ struct ContentView: View {
                 }
             }
             .sheet(isPresented: $showSettings) {
-                SettingsView()
+                SettingsView(model: model)
             }
         }
     }
@@ -83,11 +86,11 @@ struct ContentView: View {
                 .font(.system(size: 36, weight: .semibold))
                 .foregroundStyle(.teal)
                 .accessibilityHidden(true)
-            Text("Apple Health, on your terms")
+            Text("Apple Health for your AI agent")
                 .font(.title.bold())
             Text(
-                "Give an agent you approve read-only Steps and Sleep. "
-                    + "You can see what was delivered and revoke access at any time."
+                "FitKiku connects read-only Steps and Sleep to an agent you approve. "
+                    + "See what is current and revoke access at any time."
             )
             .font(.body)
             .foregroundStyle(Color.fitKikuSecondaryText)
@@ -100,7 +103,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 16) {
                 sectionHeader(
                     title: "Connect an agent",
-                    detail: "Step 1 of 2",
+                    detail: "Start here",
                     systemImage: "link.badge.plus"
                 )
 
@@ -111,46 +114,55 @@ struct ContentView: View {
                 } else if let recovery = model.pendingLegacyPairing {
                     legacyConsentCard(recovery)
                 } else {
-                    Text(
-                        "Ask your agent to connect Apple Health, then open the "
-                            + "FitKiku Pair Link it sends. Opening a link never shares health data."
-                    )
-                    .foregroundStyle(Color.fitKikuSecondaryText)
+                    Text(FitKikuSetupPrompt.summary)
+                        .foregroundStyle(Color.fitKikuSecondaryText)
 
-                    DisclosureGroup(
-                        "Paste a Pair Link manually",
-                        isExpanded: $showManualPairLink
-                    ) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Pair Link")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.fitKikuSecondaryText)
-                            SecureField("Paste Pair Link", text: $pastedPairLink)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .textContentType(.URL)
-                                .submitLabel(.go)
-                                .onSubmit(reviewPairLink)
-                                .textFieldStyle(.roundedBorder)
-                            Button(action: reviewPairLink) {
-                                actionLabel("Review connection", systemImage: "checkmark.shield")
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .disabled(model.isBusy || pairLinkIsBlank)
-                        }
-                        .padding(.top, 10)
+                    Button(action: copySetupPrompt) {
+                        actionLabel(FitKikuSetupPrompt.buttonTitle, systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isBusy)
+
+                    if copiedSetupPrompt {
+                        Label(FitKikuSetupPrompt.copiedStatus, systemImage: "checkmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.green)
                     }
 
-                    DisclosureGroup(
-                        "Recovery options",
-                        isExpanded: $showRecoverySetup
-                    ) {
-                        recoverySetup
-                            .padding(.top, 10)
+                    DisclosureGroup("Advanced setup and recovery", isExpanded: $showAdvancedSetup) {
+                        VStack(alignment: .leading, spacing: 14) {
+                            manualPairLinkSetup
+                            Divider()
+                            recoverySetup
+                        }
+                        .padding(.top, 10)
                     }
                 }
                 feedback
             }
+        }
+    }
+
+    private var manualPairLinkSetup: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Paste a Pair Link only if a compatible FitKiku connection already returned one.")
+                .font(.footnote)
+                .foregroundStyle(Color.fitKikuSecondaryText)
+            Text("Pair Link")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.fitKikuSecondaryText)
+            SecureField("Paste Pair Link", text: $pastedPairLink)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .textContentType(.URL)
+                .submitLabel(.go)
+                .onSubmit(reviewPairLink)
+                .textFieldStyle(.roundedBorder)
+            Button(action: reviewPairLink) {
+                actionLabel("Review connection", systemImage: "checkmark.shield")
+            }
+            .buttonStyle(.bordered)
+            .disabled(model.isBusy || pairLinkIsBlank)
         }
     }
 
@@ -208,8 +220,12 @@ struct ContentView: View {
 
     private func agentConsentCard(_ consent: PendingAgentConsent) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Review before connecting")
+            Text("Approve this connection")
                 .font(.headline)
+            Text(
+                "This step only approves the destination below. Apple Health permission is still separate."
+            )
+            .foregroundStyle(Color.fitKikuSecondaryText)
             detailRow("Claimed agent", value: consent.preview.assertedAgentName)
             Text("The requesting service supplied this name; FitKiku has not verified its identity.")
                 .font(.footnote)
@@ -318,12 +334,12 @@ struct ContentView: View {
         card {
             VStack(alignment: .leading, spacing: 12) {
                 sectionHeader(
-                    title: "Agent connected",
+                    title: "Connected",
                     detail: connectionHost,
                     systemImage: "checkmark.seal.fill",
                     tint: .green
                 )
-                Text("Only read-only Steps and Sleep can be delivered to this destination.")
+                Text(connectionStatusSummary)
                     .foregroundStyle(Color.fitKikuSecondaryText)
                 feedback
             }
@@ -335,7 +351,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader(
                     title: "Allow Apple Health",
-                    detail: model.isPaired ? "Step 2 of 2" : "Available anytime",
+                    detail: model.isPaired ? "Next step" : "Optional now",
                     systemImage: "heart.fill",
                     tint: .red
                 )
@@ -350,13 +366,23 @@ struct ContentView: View {
                             .font(.footnote)
                             .foregroundStyle(Color.fitKikuSecondaryText)
                     }
-                    Button {
-                        Task { await model.requestHealthAccess() }
-                    } label: {
-                        actionLabel("Continue to Health", systemImage: "heart.fill")
+                    if model.isPaired {
+                        Button {
+                            Task { await model.requestHealthAccess() }
+                        } label: {
+                            actionLabel("Continue to Health", systemImage: "heart.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isBusy)
+                    } else {
+                        Button {
+                            Task { await model.requestHealthAccess() }
+                        } label: {
+                            actionLabel("Continue to Health", systemImage: "heart.fill")
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(model.isBusy)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(model.isBusy)
                 } else {
                     Label("Read-only access requested", systemImage: "checkmark.circle.fill")
                         .font(.headline)
@@ -374,14 +400,22 @@ struct ContentView: View {
 
     @ViewBuilder
     private var summaries: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("On this iPhone")
-                .font(.title3.bold())
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .id("summaries")
-            DaySummaryCard(title: "Today", summary: model.today)
-            DaySummaryCard(title: "Yesterday", summary: model.yesterday)
-                .id("yesterday")
+        card {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionHeader(
+                    title: "Local Apple Health",
+                    detail: "On this iPhone",
+                    systemImage: "iphone"
+                )
+                Text("These summaries stay available on this iPhone, even without an agent connection.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+                CompactDaySummaryRow(title: "Today", summary: model.today)
+                Divider()
+                CompactDaySummaryRow(title: "Yesterday", summary: model.yesterday)
+                    .id("yesterday")
+            }
+            .id("summaries")
         }
     }
 
@@ -389,10 +423,13 @@ struct ContentView: View {
         card {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader(
-                    title: "Delivery",
-                    detail: deliveryHeadline,
+                    title: "Check delivery",
+                    detail: deliveryDetailLabel,
                     systemImage: "arrow.triangle.2.circlepath"
                 )
+                Text("Refresh server and agent status, then inspect technical details only when needed.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
 
                 Button {
                     Task { await model.syncNow() }
@@ -460,13 +497,6 @@ struct ContentView: View {
                             Task { await model.refreshDeliveryStatus() }
                         }
                         .buttonStyle(.bordered)
-                        .disabled(model.isBusy)
-
-                        Divider()
-
-                        Button("Disconnect and revoke access", role: .destructive) {
-                            Task { await model.disconnect() }
-                        }
                         .disabled(model.isBusy)
                     }
                     .padding(.top, 10)
@@ -586,15 +616,44 @@ struct ContentView: View {
         guard !pairLinkIsBlank, !model.isBusy else { return }
         let input = pastedPairLink
         pastedPairLink = ""
+        copiedSetupPrompt = false
         Task { await model.loadPairingInput(input) }
+    }
+
+    private func copySetupPrompt() {
+        UIPasteboard.general.string = FitKikuSetupPrompt.message
+        copiedSetupPrompt = true
     }
 
     private var connectionHost: String {
         URL(string: model.serverAddress)?.host ?? "Approved destination"
     }
 
-    private var deliveryHeadline: String {
-        guard let delivery = model.deliveryStatus else { return "Not checked" }
+    private var connectionStatusSummary: String {
+        if !model.healthAccessRequested {
+            return "This destination is approved, but Apple Health permission is still a separate step."
+        }
+        if model.deliveryStatusError != nil {
+            return "This connection is approved, but delivery status is currently unavailable."
+        }
+        guard let delivery = model.deliveryStatus else {
+            return "Daily Steps and Sleep can go here. Delivery has not been checked yet."
+        }
+        switch delivery.dataFreshness {
+        case .current:
+            return "Recent Steps and Sleep reached this destination and look current."
+        case .stale:
+            return "Daily Steps and Sleep are connected, but some recent delivery still needs attention."
+        case .unknown:
+            return "Daily Steps and Sleep are connected, but recent delivery status is still unknown."
+        }
+    }
+
+    private var deliveryDetailLabel: String {
+        guard model.healthAccessRequested else { return "Health permission required" }
+        guard let delivery = model.deliveryStatus else {
+            return model.deliveryStatusError == nil ? "Not checked" : "Unavailable"
+        }
         switch delivery.dataFreshness {
         case .current:
             return "Current"
@@ -604,29 +663,75 @@ struct ContentView: View {
             return "Unknown"
         }
     }
+
+    private var isReviewingConnection: Bool {
+        model.pendingAgentConsent != nil
+            || model.pendingLegacyPairing != nil
+            || model.localCredentialCleanupPending
+    }
+}
+
+enum FitKikuSetupPrompt {
+    static let buttonTitle = "Copy setup prompt"
+    static let copiedStatus = "Setup prompt copied. Paste it into your AI agent."
+    static let summary =
+        "Send one prompt to your AI agent. If it supports FitKiku, it will return a Pair Link; "
+        + "otherwise it should say that it cannot connect yet."
+    static let message =
+        "Use FitKiku (https://kikuai.dev/fitkiku/) to connect my Apple Health Steps and Sleep "
+        + "to this agent. If you have a compatible FitKiku connection, return a FitKiku Pair Link "
+        + "for this iPhone. If not, say clearly that you cannot connect yet. "
+        + "Do not ask me for server passwords, API tokens, or a manual Apple Health export."
 }
 
 enum FitKikuLinks {
     static let website = URL(string: "https://kikuai.dev/fitkiku/")!
     static let source = URL(string: "https://github.com/kiku-jw/fitkiku")!
-    static let github = URL(string: "https://github.com/kiku-jw")!
     static let telegram = URL(string: "https://t.me/kiku_ai")!
     static let privacy = URL(string: "https://kikuai.dev/fitkiku/privacy/")!
     static let support = URL(string: "https://kikuai.dev/fitkiku/support/")!
 
-    static let all = [website, source, github, telegram, privacy, support]
+    static let all = [website, source, telegram, privacy, support]
 }
 
 private struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var model: AppModel
 
     var body: some View {
         NavigationStack {
             Form {
+                Section("Connection") {
+                    if model.isPaired {
+                        LabeledContent("Destination", value: connectionDestination)
+                        LabeledContent("Status", value: settingsConnectionStatus)
+                        Button("Disconnect and revoke server access", role: .destructive) {
+                            Task { await model.disconnect() }
+                        }
+                        .frame(minHeight: 44)
+                        .disabled(model.isBusy)
+                    } else if model.localCredentialCleanupPending {
+                        Text("Server access is already revoked. Finish local cleanup from the main screen before pairing again.")
+                            .foregroundStyle(Color.fitKikuSecondaryText)
+                    } else {
+                        Text("No active FitKiku connection.")
+                            .foregroundStyle(Color.fitKikuSecondaryText)
+                    }
+
+                    if let error = model.errorMessage {
+                        Label(error, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    } else if let status = model.statusMessage {
+                        Label(status, systemImage: "info.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(Color.fitKikuSecondaryText)
+                    }
+                }
+
                 Section("FitKiku") {
                     settingsLink("Product website", systemImage: "globe", url: FitKikuLinks.website)
                     settingsLink("Source code", systemImage: "chevron.left.forwardslash.chevron.right", url: FitKikuLinks.source)
-                    settingsLink("GitHub", systemImage: "person.crop.circle", url: FitKikuLinks.github)
                     settingsLink("Telegram blog", systemImage: "paperplane", url: FitKikuLinks.telegram)
                 }
 
@@ -655,6 +760,30 @@ private struct SettingsView: View {
         }
         .accessibilityHint("Opens in your browser")
     }
+
+    private var connectionDestination: String {
+        URL(string: model.serverAddress)?.host ?? "Approved destination"
+    }
+
+    private var settingsConnectionStatus: String {
+        if !model.healthAccessRequested {
+            return "Waiting for Apple Health permission"
+        }
+        if model.deliveryStatusError != nil {
+            return "Delivery status unavailable"
+        }
+        guard let delivery = model.deliveryStatus else {
+            return "Delivery not checked"
+        }
+        switch delivery.dataFreshness {
+        case .current:
+            return "Current"
+        case .stale:
+            return "Needs attention"
+        case .unknown:
+            return "Unknown"
+        }
+    }
 }
 
 private extension Color {
@@ -663,13 +792,13 @@ private extension Color {
     }
 }
 
-private struct DaySummaryCard: View {
+private struct CompactDaySummaryRow: View {
     let title: String
     let summary: DaySummary?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
                 Text(title)
                     .font(.headline)
                 Spacer(minLength: 12)
@@ -698,12 +827,8 @@ private struct DaySummaryCard: View {
             }
 
             if let summary {
-                Label("Read from Apple Health", systemImage: "checkmark.circle")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.fitKikuSecondaryText)
                 Text(
-                    "Coverage: Steps \(summary.stepsCoverage.rawValue), "
-                        + "Sleep \(summary.sleepCoverage.rawValue)"
+                    "Coverage: Steps \(summary.stepsCoverage.rawValue), Sleep \(summary.sleepCoverage.rawValue)"
                 )
                 .font(.caption)
                 .foregroundStyle(Color.fitKikuSecondaryText)
@@ -721,16 +846,10 @@ private struct DaySummaryCard: View {
                 .font(.caption.weight(.semibold))
             } else {
                 Label("No Health summary is available yet", systemImage: "clock")
-                    .font(.caption)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
+                .font(.caption)
+                .foregroundStyle(Color.fitKikuSecondaryText)
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            Color(.secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 16)
-        )
     }
 
     private var sleepText: String {
@@ -744,11 +863,11 @@ private struct DaySummaryCard: View {
                 .font(.caption)
                 .foregroundStyle(Color.fitKikuSecondaryText)
             Text(value)
-                .font(.title3.bold())
+                .font(.headline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
         .background(
             Color(.tertiarySystemGroupedBackground),
             in: RoundedRectangle(cornerRadius: 12)
