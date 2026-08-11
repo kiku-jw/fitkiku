@@ -101,6 +101,11 @@ struct AgentGrantPreview: Codable, Equatable, Sendable {
     let expiresAt: String
     let retentionDisclosure: String
     let aiProcessingDisclosure: String
+
+    var formattedExpiresAt: String {
+        guard let date = AppDate.parseTimestamp(expiresAt) else { return expiresAt }
+        return date.formatted(date: .abbreviated, time: .shortened)
+    }
 }
 
 struct AgentPairRequest: Codable, Equatable, Sendable {

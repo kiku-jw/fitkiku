@@ -585,8 +585,10 @@ extension AppModel {
                     assertedAgentName: "Kiku Assistant",
                     serverOrigin: "https://health.example",
                     scopes: [.steps, .sleep],
-                    expiresAt: "2099-08-08T21:00:00Z",
-                    retentionDisclosure: "Daily summaries are retained until you revoke access.",
+                    expiresAt: "2026-04-08T18:00:00Z",
+                    retentionDisclosure:
+                        "Daily summaries are retained until deletion is requested. "
+                        + "Revoking stops future access but does not delete stored summaries.",
                     aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider."
                 )
             )

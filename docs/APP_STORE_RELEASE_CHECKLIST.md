@@ -10,6 +10,8 @@
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
+- **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
+- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-11
 
 ## Hard release gates
 
@@ -17,14 +19,9 @@
 - [ ] The submission identity is resolved with Apple: FitKiku is a non-medical
       Health & Fitness utility, but Guideline 5.1.1(ix) says apps requiring
       sensitive user information should be submitted by the legal entity
-      providing the service. A close competitor is currently listed under an
-      individual seller, which lowers but does not remove review risk.
+      providing the service. FitKiku currently has no legal-entity submission
+      identity, so review acceptance under an individual seller is unproven.
 - [ ] App Store Connect app record exists and the Bundle ID matches the build.
-- [ ] The paid-program App ID, provisioning profile, and final binary include
-      Associated Domains, and
-      `https://kikuai.dev/.well-known/apple-app-site-association` serves the
-      exact production app identifier over HTTPS without redirects. Personal
-      Team cannot prove this capability.
 - [ ] A production HTTPS backend supports the intended public user boundary.
 - [ ] App Review can exercise the complete flow through an active demo account,
       fully featured demo mode, or reviewer-only sample Pair Link and backend.
@@ -35,9 +32,18 @@
 - [ ] The final archive is uploaded and processed without unresolved warnings.
 - [ ] Owner explicitly approves submission.
 
+Associated Domains and an Apple App Site Association file are not 1.0 release
+gates. The current Pair Link contract intentionally uses the registered
+`fitkiku-health://` custom URL scheme. Universal Links remain a post-1.0
+hardening option after a paid App ID exists; do not advertise them before they
+are implemented and tested in the signed binary.
+
 ## Product-page draft
 
 These are working drafts, not published metadata.
+
+The paste-ready English metadata and review-note template live in
+[`docs/app-store/metadata/en-US.md`](app-store/metadata/en-US.md).
 
 - **Name:** FitKiku
 - **Subtitle:** Apple Health for your AI
@@ -100,8 +106,9 @@ and reshape the business decision before changing the binary.
 
 - [x] Privacy Policy URL — <https://kikuai.dev/fitkiku/privacy/>.
 - [x] Support URL — <https://kikuai.dev/fitkiku/support/>.
-- [ ] Optional privacy choices/deletion URL — decide from the final hosted data
-      control path.
+- [x] Privacy choices/deletion URL — <https://kikuai.dev/fitkiku/support/>;
+      it explains the separate deletion request and opens a pre-addressed
+      support email without collecting health data in a web form.
 - [ ] App Review contact name, phone, and email — owner-provided in App Store
       Connect, never committed here.
 
@@ -109,10 +116,14 @@ Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
 
 Both required URLs returned public HTTPS `200` responses with their canonical
-content on 2026-08-09. They describe current private testing accurately and do
+content on 2026-08-11. They describe current private testing accurately and do
 not claim App Store availability. The privacy page intentionally keeps public
 enrollment closed until the production backup-retention schedule and
 destination/provider list are finalized.
+
+FitKiku does not create an account in the iOS app. Pairing creates revocable
+device and agent grants. If a future public flow adds account creation, in-app
+account deletion becomes a separate release requirement.
 
 ## App Privacy candidate answers
 
@@ -165,12 +176,11 @@ Apple currently accepts one to ten iPhone screenshots. Capture only synthetic
 or empty demo states with no credentials or personal health data.
 
 - [x] First run: clear Connect Agent and Apple Health steps.
-- [ ] Consent: recapture after the synthetic retention disclosure matches the
-      deployed wording that revocation stops future access but does not delete
-      stored summaries.
+- [x] Consent: the synthetic retention disclosure matches the deployed wording
+      that revocation stops future access but does not delete stored summaries.
 - [x] Delivery: synthetic current and partial/stale states with actionable copy.
-- [x] The English set is 1206x2622, opaque JPEG from an iPhone 17
-      simulator, an accepted 6.3-inch portrait size in Apple's current
+- [x] The English set is 1320x2868, opaque JPEG from an iPhone 17 Pro Max
+      simulator, an accepted 6.9-inch portrait size in Apple's current
       screenshot specification.
 - [x] No screenshot contains Pair Links, tokens, server credentials, real Steps,
       real asleep minutes, source identifiers, or owner-specific timestamps.
@@ -202,17 +212,19 @@ release candidate.
 - [x] A source-language string catalog is present for user-facing SwiftUI copy.
 - [x] The unsigned local Release archive excludes the synthetic demo scenario
       parser, sample agent name, and synthetic token marker.
-- [ ] Final English catalog is reviewed; Russian/Ukrainian are optional later
-      releases and must not be machine-published without review.
+- [x] Final English source copy is reviewed across the synthetic release states;
+      Russian/Ukrainian are optional later releases and must not be machine-
+      published without review.
 - [ ] Marketing version and monotonically increasing build number are set for
       the exact archive.
 - [ ] Encryption/export-compliance answers are completed for TLS and CryptoKit
       HMAC use; do not guess or hide cryptography.
 - [ ] Final archive passes Xcode validation after enrollment and app-record
       creation.
-- [ ] Final paid-program archive contains the `applinks:kikuai.dev`
-      entitlement; the current Personal Team development build intentionally
-      does not.
+- [x] The app registers the `fitkiku-health://` Pair Link scheme used by the
+      current 1.0 connection contract.
+- [ ] If Universal Links are added later, verify the paid-program archive,
+      Associated Domains entitlement, and exact AASA app identifier together.
 
 ## Accessibility and quality preflight
 
@@ -237,16 +249,14 @@ release candidate.
 
 ## Latest local release receipt
 
-- [x] 54/54 iPhone 17 / iOS 26.5 Simulator tests pass on the current release-
-      hardening worktree.
-- [x] The public iOS mirror passes the same 54-test suite after an ordinary
-      shutdown/boot recovered one initial Simulator `Busy` preflight failure.
+- [x] 56/56 iPhone 17 / iOS 26.5 Simulator tests pass on the current release-
+      hardening source.
+- [x] The public iOS mirror passes the same 56-test suite.
 - [x] A fresh unsigned generic-device Release archive succeeds, contains a
       valid privacy manifest and App Icon metadata, carries the HealthKit
       entitlement, and excludes DEBUG synthetic markers.
-- [x] The Personal Team source intentionally contains no Associated Domains
-      entitlement; this is a recorded release blocker, not a passing public-
-      onboarding result.
+- [x] The source intentionally contains no Associated Domains entitlement;
+      the 1.0 Pair Link path uses its registered custom URL scheme instead.
 - [ ] Install this exact release-hardening source on a physical iPhone only
       after the active `b99f0fb` reliability window completes or is explicitly
       abandoned; replacement starts a new evidence window.
@@ -286,6 +296,7 @@ test -f /tmp/FitKiku.xcarchive/Products/Applications/FitKiku.app/PrivacyInfo.xcp
 - [App icons](https://developer.apple.com/design/human-interface-guidelines/app-icons/)
 - [App screenshots](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots)
 - [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications)
+- [Submitting apps](https://developer.apple.com/app-store/submitting/)
 - [Upload builds](https://developer.apple.com/help/app-store-connect/manage-builds/upload-builds/)
 - [Supporting associated domains](https://developer.apple.com/documentation/Xcode/supporting-associated-domains?changes=_2)
 - [Supported capabilities for iOS memberships](https://developer.apple.com/help/account/reference/supported-capabilities-ios)
