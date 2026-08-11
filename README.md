@@ -2,8 +2,9 @@
 
 <img src="ios/FitKiku/FitKiku/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="FitKiku app icon">
 
-FitKiku is a native iPhone companion that gives a personal AI agent recent,
-read-only Apple Health context after explicit user approval.
+FitKiku is an Apple Health connector for personal AI agents. Its native iPhone
+app gives an agent you approve recent, read-only Apple Health context after
+explicit user approval.
 
 The current product reads only daily Steps and Sleep. It shows the destination
 before connection, keeps unknown or partial coverage visible, reports delivery
@@ -43,6 +44,17 @@ Still under validation:
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;
 this repository contains no checkout or active subscription flow.
+
+## Connect an agent
+
+Send this setup prompt to your AI agent:
+
+```text
+Use FitKiku (https://kikuai.dev/fitkiku/) to connect my Apple Health Steps and Sleep to this agent. If you have a compatible FitKiku connection, return a FitKiku Pair Link for this iPhone. If not, say clearly that you cannot connect yet. Do not ask me for server passwords, API tokens, or a manual Apple Health export.
+```
+
+FitKiku currently works only through compatible FitKiku connections. It does
+not yet support every AI agent or runtime.
 
 ## Data boundary
 

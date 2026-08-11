@@ -8,11 +8,10 @@ final class DaySummaryTests: XCTestCase {
         XCTAssertEqual(Set(FitKikuLinks.all.compactMap(\.scheme)), ["https"])
         XCTAssertEqual(FitKikuLinks.website.host, "kikuai.dev")
         XCTAssertEqual(FitKikuLinks.source.host, "github.com")
-        XCTAssertEqual(FitKikuLinks.github.host, "github.com")
-        XCTAssertEqual(FitKikuLinks.github.path, "/kiku-jw")
         XCTAssertEqual(FitKikuLinks.telegram.host, "t.me")
         XCTAssertEqual(FitKikuLinks.privacy.host, "kikuai.dev")
         XCTAssertEqual(FitKikuLinks.support.host, "kikuai.dev")
+        XCTAssertEqual(FitKikuLinks.all.count, 5)
     }
 
     func testNormalizationDeduplicatesAndMergesOverlappingSleepForDisplay() throws {

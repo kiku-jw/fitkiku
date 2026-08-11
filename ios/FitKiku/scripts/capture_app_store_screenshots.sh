@@ -14,7 +14,11 @@ if [[ -z "$SIMULATOR_ID" ]]; then
     | awk -F '[()]' '/iPhone 17 Pro Max/ { print $2; exit }')
 fi
 if [[ -z "$SIMULATOR_ID" ]]; then
-  print -u2 "An available iPhone 17 Pro Max simulator is required."
+  SIMULATOR_ID=$(xcrun simctl list devices available \
+    | awk -F '[()]' '/iPhone 17 / { print $2; exit }')
+fi
+if [[ -z "$SIMULATOR_ID" ]]; then
+  print -u2 "An available iPhone 17 Pro Max or iPhone 17 simulator is required."
   exit 1
 fi
 
@@ -62,15 +66,21 @@ for item in $SCENARIOS; do
 
   xcrun simctl terminate "$SIMULATOR_ID" com.kikuai.fitkiku.health \
     >/dev/null 2>&1 || true
+  # Reset UIKit's restored scroll position so each synthetic state starts from
+  # its own deterministic anchor rather than inheriting the prior scenario.
+  xcrun simctl uninstall "$SIMULATOR_ID" com.kikuai.fitkiku.health \
+    >/dev/null 2>&1 || true
+  xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
   SIMCTL_CHILD_FITKIKU_DEMO_SCENARIO="$scenario" \
     xcrun simctl launch "$SIMULATOR_ID" com.kikuai.fitkiku.health >/dev/null
-  sleep 2
+  sleep 5
   xcrun simctl io "$SIMULATOR_ID" screenshot "$raw" >/dev/null
   sips -s format jpeg -s formatOptions 100 "$raw" --out "$output" >/dev/null
 
   width=$(sips -g pixelWidth "$output" | awk '/pixelWidth/ { print $2 }')
   height=$(sips -g pixelHeight "$output" | awk '/pixelHeight/ { print $2 }')
-  if [[ "$width" != 1320 || "$height" != 2868 ]]; then
+  if [[ "${width}x${height}" != "1320x2868" \
+    && "${width}x${height}" != "1206x2622" ]]; then
     print -u2 "$output has unexpected dimensions: ${width}x${height}"
     exit 1
   fi
