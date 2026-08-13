@@ -48,6 +48,7 @@ FitKiku helps you:
 - keep missing or partial coverage visible instead of treating it as zero;
 - see freshness and recent delivery status;
 - revoke future device delivery and agent access;
+- delete an anonymous FitKiku connection and its synced server data;
 - use Apple Watch data after it reaches Apple Health on the paired iPhone.
 
 FitKiku never writes to Apple Health. It contains no advertising or tracking
@@ -74,6 +75,7 @@ personal AI agents.
 - Approve the destination and data categories before sharing.
 - See freshness, missing-data, and delivery status.
 - Disconnect and revoke future access at any time.
+- Delete anonymous synced FitKiku data without changing Apple Health.
 
 ## App Privacy candidate
 
@@ -89,8 +91,10 @@ The privacy policy describes the exact Steps, Sleep, coverage, source-detail,
 installation-identifier, AI-provider, retention, revocation, and deletion
 boundaries. No data is used for advertising or tracking.
 
-The iOS app does not create an account. Its connection grants are revocable,
-and the Support URL provides the separate stored-data deletion request.
+Public setup creates an anonymous FitKiku guest with no email, password, or
+recovery identity. Its connection grants are revocable, and the paired iOS
+Settings screen can delete that guest and its synced FitKiku server data.
+Deletion does not modify Apple Health.
 
 ## App Review notes template
 
@@ -113,6 +117,9 @@ After connection:
 2. Open delivery details to review freshness and missing-data status.
 3. Open Settings and choose **Disconnect and revoke server access** to revoke
    future device delivery and agent reads.
+4. For an anonymous public connection, choose **Delete FitKiku account and data**
+   and confirm to remove the guest and stored FitKiku summaries. This does not
+   delete Apple Health data.
 
 Background delivery is best effort. Apple Watch data appears only after it
 reaches Apple Health on the paired iPhone. Empty or unavailable Health data is

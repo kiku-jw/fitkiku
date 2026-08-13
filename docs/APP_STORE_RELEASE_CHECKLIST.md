@@ -11,7 +11,7 @@
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
-- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-11
+- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-13
 
 ## Hard release gates
 
@@ -70,6 +70,8 @@ FitKiku helps you:
 - keep missing or partial coverage visible instead of treating it as zero;
 - see when the server last confirmed delivery and when an active agent fetched;
 - revoke future device and agent access;
+- delete an anonymous FitKiku connection and its synced server data without
+  changing Apple Health;
 - use Apple Watch data after it reaches Apple Health on the paired iPhone.
 
 FitKiku never writes to Apple Health and contains no advertising or tracking
@@ -107,8 +109,9 @@ and reshape the business decision before changing the binary.
 - [x] Privacy Policy URL — <https://kikuai.dev/fitkiku/privacy/>.
 - [x] Support URL — <https://kikuai.dev/fitkiku/support/>.
 - [x] Privacy choices/deletion URL — <https://kikuai.dev/fitkiku/support/>;
-      it explains the separate deletion request and opens a pre-addressed
-      support email without collecting health data in a web form.
+      it explains in-app anonymous-account deletion and opens a pre-addressed
+      support email for process guidance without collecting health data in a
+      web form.
 - [ ] App Review contact name, phone, and email — owner-provided in App Store
       Connect, never committed here.
 
@@ -116,14 +119,17 @@ Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
 
 Both required URLs returned public HTTPS `200` responses with their canonical
-content on 2026-08-11. They describe current private testing accurately and do
+content on 2026-08-13. They describe current private testing accurately and do
 not claim App Store availability. The privacy page intentionally keeps public
 enrollment closed until the production backup-retention schedule and
 destination/provider list are finalized.
 
-FitKiku does not create an account in the iOS app. Pairing creates revocable
-device and agent grants. If a future public flow adds account creation, in-app
-account deletion becomes a separate release requirement.
+Public setup creates an anonymous FitKiku guest with no email, password, or
+recovery identity. The paired iOS Settings screen exposes **Delete FitKiku
+account and data** only for that guest; server confirmation precedes protected
+local cleanup, and the confirmation states that Apple Health is unchanged.
+Private-owner connections remain revocation-only. The hosted public boundary is
+implemented in source but is not deployed or enabled.
 
 ## App Privacy candidate answers
 
@@ -162,9 +168,11 @@ Prepare review notes with only non-secret, reviewer-specific material:
    is expected.
 5. Explain how to disconnect and revoke both device ingest and agent read
    access.
-6. If Apple Watch data is needed for review, state the hardware dependency and
+6. Explain anonymous account deletion and that it does not delete Apple Health
+   data.
+7. If Apple Watch data is needed for review, state the hardware dependency and
    provide an alternative deterministic review path for empty/local states.
-7. State that the app is free and has no purchasing flow. Any optional hosted
+8. State that the app is free and has no purchasing flow. Any optional hosted
    account is acquired and managed on the web without an in-app purchase CTA.
 
 Never paste production credentials, owner health values, or a reusable Pair
@@ -223,6 +231,8 @@ release candidate.
       creation.
 - [x] The app registers the `fitkiku-health://` Pair Link scheme used by the
       current 1.0 connection contract.
+- [x] Settings exposes destructive, confirmed account deletion only after
+      authenticated status identifies an anonymous guest.
 - [ ] If Universal Links are added later, verify the paid-program archive,
       Associated Domains entitlement, and exact AASA app identifier together.
 
@@ -249,17 +259,26 @@ release candidate.
 
 ## Latest local release receipt
 
-- [x] 56/56 iPhone 17 / iOS 26.5 Simulator tests pass on the current release-
-      hardening source.
-- [x] The public iOS mirror passes the same 56-test suite.
+- [x] 60/60 iPhone 17 / iOS 26.5 Simulator tests pass on the current source,
+      including account deletion, old-backend compatibility, and fail-closed
+      protected cleanup.
+- [x] The public iOS mirror independently passes the same 60-test suite.
 - [x] A fresh unsigned generic-device Release archive succeeds, contains a
       valid privacy manifest and App Icon metadata, carries the HealthKit
       entitlement, and excludes DEBUG synthetic markers.
+- [x] Public product, Privacy, Support, and agent-readable pages describe the
+      anonymous deletion boundary and explicitly state that hosted enrollment
+      is not live.
 - [x] The source intentionally contains no Associated Domains entitlement;
       the 1.0 Pair Link path uses its registered custom URL scheme instead.
 - [ ] Install this exact release-hardening source on a physical iPhone only
       after the active `b99f0fb` reliability window completes or is explicitly
       abandoned; replacement starts a new evidence window.
+
+These local and public-source checks do not prove a live reviewer flow. Public
+runtime deployment/readback, final retention/provider disclosures, distribution
+signing, App Store Connect validation, and physical-device proof remain hard
+gates.
 
 ## Local verification commands
 
