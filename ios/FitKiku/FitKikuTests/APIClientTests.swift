@@ -86,12 +86,15 @@ private actor PairingTestTransport: AppTransport {
     private var previewCount = 0
     private var agentPairCount = 0
     private var revokeCount = 0
+    private var deleteCount = 0
     private var statusCount = 0
     private var ingestCount = 0
     private var revokeFails = true
+    private var deleteFails = true
     private var ingestFails = false
     private var shouldBlockDeviceStatus = false
     private var deviceStatusContinuation: CheckedContinuation<Void, Never>?
+    private var lastPairTimezone: String?
 
     func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
         "legacy-device-credential"
@@ -120,16 +123,19 @@ private actor PairingTestTransport: AppTransport {
             scopes: [.steps, .sleep],
             expiresAt: "2099-08-02T12:00:00Z",
             retentionDisclosure: "Daily summaries are retained until revocation.",
-            aiProcessingDisclosure: "The agent may send summaries to its configured AI provider."
+            aiProcessingDisclosure: "The agent may send summaries to its configured AI provider.",
+            requiresTimezone: true
         )
     }
 
     func pairAgent(
         baseURL _: URL,
         pairingToken _: String,
-        installationID _: String
+        installationID _: String,
+        timezone: String?
     ) async throws -> String {
         agentPairCount += 1
+        lastPairTimezone = timezone
         return "agent-device-credential"
     }
 
@@ -143,6 +149,18 @@ private actor PairingTestTransport: AppTransport {
             throw APIClientError.transport
         }
         return "revoked"
+    }
+
+    func deleteAccount(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> String {
+        deleteCount += 1
+        if deleteFails {
+            throw APIClientError.transport
+        }
+        return "deleted"
     }
 
     func deviceStatus(
@@ -163,12 +181,17 @@ private actor PairingTestTransport: AppTransport {
             lastDeviceGeneratedAt: Date(timeIntervalSince1970: 1_774_999_940),
             latestCoverage: HealthCoverage(steps: .complete, sleep: .partial),
             missingLocalDates: ["2026-08-01"],
-            dataFreshness: .current
+            dataFreshness: .current,
+            canDeleteAccount: true
         )
     }
 
     func allowRevocation() {
         revokeFails = false
+    }
+
+    func allowDeletion() {
+        deleteFails = false
     }
 
     func failIngest() {
@@ -185,8 +208,12 @@ private actor PairingTestTransport: AppTransport {
         deviceStatusContinuation = nil
     }
 
-    func counts() -> (preview: Int, pair: Int, revoke: Int, status: Int, ingest: Int) {
-        (previewCount, agentPairCount, revokeCount, statusCount, ingestCount)
+    func counts() -> (preview: Int, pair: Int, revoke: Int, delete: Int, status: Int, ingest: Int) {
+        (previewCount, agentPairCount, revokeCount, deleteCount, statusCount, ingestCount)
+    }
+
+    func pairedTimezone() -> String? {
+        lastPairTimezone
     }
 }
 
@@ -294,6 +321,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(preview.serverOrigin, "https://fitkiku.example")
         XCTAssertEqual(preview.scopes, [.steps, .sleep])
         XCTAssertEqual(preview.expiresAt, "2099-08-02T12:00:00Z")
+        XCTAssertNil(preview.requiresTimezone)
         XCTAssertNotEqual(preview.formattedExpiresAt, preview.expiresAt)
         XCTAssertFalse(preview.formattedExpiresAt.contains("T12:00:00Z"))
     }
@@ -318,19 +346,37 @@ final class APIClientTests: XCTestCase {
         let request = try APIClient().makeAgentPairRequest(
             baseURL: baseURL,
             pairingToken: validToken,
-            installationID: "fixture-installation-0001"
+            installationID: "fixture-installation-0001",
+            timezone: "America/Toronto"
         )
         let object = try jsonObject(XCTUnwrap(request.httpBody))
 
         XCTAssertEqual(request.url?.path, "/healthkit/agent-pair")
         XCTAssertEqual(
             Set(object.keys),
-            ["pairing_token", "installation_id", "app_version"]
+            ["pairing_token", "installation_id", "app_version", "timezone"]
         )
         XCTAssertEqual(object["pairing_token"] as? String, validToken)
         XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
         XCTAssertEqual(object["app_version"] as? String, "native/1.0")
+        XCTAssertEqual(object["timezone"] as? String, "America/Toronto")
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+
+    func testPrivateAgentPairRequestOmitsTimezoneForOlderBackendCompatibility() throws {
+        let baseURL = try APIClient.validatedBaseURL("https://fitkiku.example")
+        let request = try APIClient().makeAgentPairRequest(
+            baseURL: baseURL,
+            pairingToken: validToken,
+            installationID: "fixture-installation-0001"
+        )
+        let object = try jsonObject(XCTUnwrap(request.httpBody))
+
+        XCTAssertEqual(
+            Set(object.keys),
+            ["pairing_token", "installation_id", "app_version"]
+        )
+        XCTAssertNil(object["timezone"])
     }
 
     func testDeviceRevokeRequestIsAuthenticatedAndScopedToInstallation() throws {
@@ -343,6 +389,24 @@ final class APIClientTests: XCTestCase {
         let object = try jsonObject(XCTUnwrap(request.httpBody))
 
         XCTAssertEqual(request.url?.path, "/healthkit/device/revoke")
+        XCTAssertEqual(Set(object.keys), ["installation_id"])
+        XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Authorization"),
+            "Bearer synthetic-device-credential"
+        )
+    }
+
+    func testDeleteAccountRequestIsAuthenticatedAndScopedToInstallation() throws {
+        let baseURL = try APIClient.validatedBaseURL("https://fitkiku.example")
+        let request = try APIClient().makeDeleteAccountRequest(
+            baseURL: baseURL,
+            credential: "synthetic-device-credential",
+            installationID: "fixture-installation-0001"
+        )
+        let object = try jsonObject(XCTUnwrap(request.httpBody))
+
+        XCTAssertEqual(request.url?.path, "/healthkit/device/delete-account")
         XCTAssertEqual(Set(object.keys), ["installation_id"])
         XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
         XCTAssertEqual(
@@ -388,7 +452,8 @@ final class APIClientTests: XCTestCase {
               "last_device_generated_at": "2026-08-02T11:59:00Z",
               "latest_coverage": {"steps": "complete", "sleep": "partial"},
               "missing_local_dates": ["2026-08-01"],
-              "data_freshness": "current"
+              "data_freshness": "current",
+              "can_delete_account": true
             }
             """.utf8
         )
@@ -401,6 +466,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(status.latestCoverage, HealthCoverage(steps: .complete, sleep: .partial))
         XCTAssertEqual(status.missingLocalDates, ["2026-08-01"])
         XCTAssertEqual(status.dataFreshness, .current)
+        XCTAssertEqual(status.canDeleteAccount, true)
     }
 
     func testDeviceStatusMapsMalformedJSONToInvalidResponse() async throws {
@@ -419,6 +485,26 @@ final class APIClientTests: XCTestCase {
         }
     }
 
+    func testLegacyDeviceStatusWithoutDeletionFlagDefaultsToNotDeletable() throws {
+        let data = Data(
+            """
+            {
+              "last_server_received_at": null,
+              "last_agent_fetched_at": null,
+              "latest_local_date": null,
+              "last_device_generated_at": null,
+              "latest_coverage": null,
+              "missing_local_dates": [],
+              "data_freshness": "unknown"
+            }
+            """.utf8
+        )
+        let response = try CanonicalJSON.decoder().decode(DeviceStatusResponse.self, from: data)
+
+        XCTAssertNil(response.canDeleteAccount)
+        XCTAssertFalse(try APIClient().validatedDeviceStatus(response).canDeleteAccount)
+    }
+
     func testDeviceStatusRejectsMalformedTimestamps() throws {
         let client = APIClient()
         let valid = DeviceStatusResponse(
@@ -428,7 +514,8 @@ final class APIClientTests: XCTestCase {
             lastDeviceGeneratedAt: "2026-08-02T11:59:00Z",
             latestCoverage: HealthCoverage(steps: .complete, sleep: .unknown),
             missingLocalDates: ["2026-08-01"],
-            dataFreshness: .current
+            dataFreshness: .current,
+            canDeleteAccount: true
         )
         let parsed = try client.validatedDeviceStatus(valid)
 
@@ -436,6 +523,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(parsed.lastAgentFetchedAt)
         XCTAssertEqual(parsed.latestLocalDate, "2026-08-02")
         XCTAssertEqual(parsed.dataFreshness, .current)
+        XCTAssertTrue(parsed.canDeleteAccount)
         XCTAssertThrowsError(
             try client.validatedDeviceStatus(
                 DeviceStatusResponse(
@@ -445,7 +533,8 @@ final class APIClientTests: XCTestCase {
                     lastDeviceGeneratedAt: "2026-08-02T11:59:00Z",
                     latestCoverage: HealthCoverage(steps: .complete, sleep: .unknown),
                     missingLocalDates: [],
-                    dataFreshness: .current
+                    dataFreshness: .current,
+                    canDeleteAccount: false
                 )
             )
         )
@@ -458,7 +547,8 @@ final class APIClientTests: XCTestCase {
                     lastDeviceGeneratedAt: nil,
                     latestCoverage: nil,
                     missingLocalDates: [],
-                    dataFreshness: .unknown
+                    dataFreshness: .unknown,
+                    canDeleteAccount: false
                 )
             )
         )
@@ -473,7 +563,8 @@ final class APIClientTests: XCTestCase {
             scopes: [.sleep, .steps],
             expiresAt: "2099-08-02T12:00:00.000Z",
             retentionDisclosure: "Stored until revoked.",
-            aiProcessingDisclosure: "Processed by the configured model provider."
+            aiProcessingDisclosure: "Processed by the configured model provider.",
+            requiresTimezone: false
         )
 
         XCTAssertEqual(try client.validatedAgentPreview(valid, for: baseURL), valid)
@@ -484,7 +575,8 @@ final class APIClientTests: XCTestCase {
             scopes: valid.scopes,
             expiresAt: valid.expiresAt,
             retentionDisclosure: valid.retentionDisclosure,
-            aiProcessingDisclosure: valid.aiProcessingDisclosure
+            aiProcessingDisclosure: valid.aiProcessingDisclosure,
+            requiresTimezone: valid.requiresTimezone
         )
         XCTAssertThrowsError(try client.validatedAgentPreview(wrongOrigin, for: baseURL))
 
@@ -494,7 +586,8 @@ final class APIClientTests: XCTestCase {
             scopes: [.steps],
             expiresAt: valid.expiresAt,
             retentionDisclosure: valid.retentionDisclosure,
-            aiProcessingDisclosure: valid.aiProcessingDisclosure
+            aiProcessingDisclosure: valid.aiProcessingDisclosure,
+            requiresTimezone: valid.requiresTimezone
         )
         XCTAssertThrowsError(try client.validatedAgentPreview(wrongScopes, for: baseURL))
 
@@ -504,7 +597,8 @@ final class APIClientTests: XCTestCase {
             scopes: valid.scopes,
             expiresAt: "2020-01-01T00:00:00Z",
             retentionDisclosure: valid.retentionDisclosure,
-            aiProcessingDisclosure: valid.aiProcessingDisclosure
+            aiProcessingDisclosure: valid.aiProcessingDisclosure,
+            requiresTimezone: valid.requiresTimezone
         )
         XCTAssertThrowsError(try client.validatedAgentPreview(expired, for: baseURL))
     }
@@ -637,11 +731,14 @@ final class APIClientTests: XCTestCase {
         await harness.model.loadPairingInput(agentLink(token: validToken))
         await harness.model.approveAgentPairing()
         XCTAssertTrue(harness.model.isPaired)
+        let pairedTimezone = await harness.transport.pairedTimezone()
+        XCTAssertNotNil(pairedTimezone)
         XCTAssertEqual(try harness.keychain.credential(), "agent-device-credential")
         XCTAssertNotNil(harness.model.deliveryStatus?.lastServerReceivedAt)
         XCTAssertNotNil(harness.model.deliveryStatus?.lastAgentFetchedAt)
         XCTAssertEqual(harness.model.deliveryStatus?.dataFreshness, .current)
         XCTAssertEqual(harness.model.deliveryStatus?.missingLocalDates, ["2026-08-01"])
+        XCTAssertTrue(harness.model.canDeleteAccount)
         XCTAssertNil(harness.model.deliveryStatusError)
 
         await harness.model.disconnect()
@@ -661,6 +758,39 @@ final class APIClientTests: XCTestCase {
         )
         let observerStops = await harness.health.observerStops()
         XCTAssertEqual(observerStops, 1)
+    }
+
+    @MainActor
+    func testDeleteAccountKeepsConnectionUntilServerDeletionSucceeds() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+        XCTAssertTrue(harness.model.canDeleteAccount)
+
+        await harness.model.deleteAccount()
+
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertEqual(try harness.keychain.credential(), "agent-device-credential")
+        XCTAssertTrue(harness.model.errorMessage?.contains("remains connected") == true)
+        var counts = await harness.transport.counts()
+        XCTAssertEqual(counts.delete, 1)
+        XCTAssertEqual(counts.revoke, 0)
+
+        await harness.transport.allowDeletion()
+        await harness.model.deleteAccount()
+
+        XCTAssertFalse(harness.model.isPaired)
+        XCTAssertFalse(harness.model.canDeleteAccount)
+        XCTAssertNil(try harness.keychain.credential())
+        XCTAssertEqual(
+            harness.model.statusMessage,
+            "FitKiku server data and local protected data were deleted. Apple Health was unchanged."
+        )
+        counts = await harness.transport.counts()
+        XCTAssertEqual(counts.delete, 2)
+        XCTAssertEqual(counts.revoke, 0)
     }
 
     @MainActor
@@ -692,7 +822,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(try harness.keychain.credential())
         XCTAssertEqual(
             harness.model.statusMessage,
-            "Local protected data for the revoked connection was removed."
+            "Local protected data for the ended connection was removed."
         )
     }
 
@@ -886,7 +1016,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(cleanup.attempts, 2)
         XCTAssertEqual(
             model.statusMessage,
-            "Local protected data for the revoked connection was removed."
+            "Local protected data for the ended connection was removed."
         )
     }
 

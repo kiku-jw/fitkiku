@@ -697,6 +697,7 @@ enum FitKikuLinks {
 private struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var model: AppModel
+    @State private var showDeleteConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -710,6 +711,13 @@ private struct SettingsView: View {
                         }
                         .frame(minHeight: 44)
                         .disabled(model.isBusy)
+                        if model.canDeleteAccount {
+                            Button("Delete FitKiku account and data", role: .destructive) {
+                                showDeleteConfirmation = true
+                            }
+                            .frame(minHeight: 44)
+                            .disabled(model.isBusy)
+                        }
                     } else if model.localCredentialCleanupPending {
                         Text("Server access is already revoked. Finish local cleanup from the main screen before pairing again.")
                             .foregroundStyle(Color.fitKikuSecondaryText)
@@ -751,6 +759,21 @@ private struct SettingsView: View {
             }
         }
         .tint(.teal)
+        .confirmationDialog(
+            "Delete FitKiku account?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete account and data", role: .destructive) {
+                Task { await model.deleteAccount() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "This permanently deletes the anonymous FitKiku connection, synced summaries, "
+                    + "and agent access from the server. It does not delete anything from Apple Health."
+            )
+        }
     }
 
     private func settingsLink(_ title: String, systemImage: String, url: URL) -> some View {

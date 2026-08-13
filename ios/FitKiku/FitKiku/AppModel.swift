@@ -41,6 +41,7 @@ final class AppModel: ObservableObject {
     private var observersInstalled = false
 
     var isSyntheticDemo: Bool { syntheticDemoRuntime }
+    var canDeleteAccount: Bool { isPaired && deliveryStatus?.canDeleteAccount == true }
     var demoScrollTarget: String?
     var shouldExpandDeliveryForDemo = false
 
@@ -231,7 +232,10 @@ final class AppModel: ObservableObject {
             let credential = try await transport.pairAgent(
                 baseURL: consent.baseURL,
                 pairingToken: consent.pairingToken,
-                installationID: installationID
+                installationID: installationID,
+                timezone: consent.preview.requiresTimezone == true
+                    ? TimeZone.current.identifier
+                    : nil
             )
             try await completePairing(
                 baseURL: consent.baseURL,
@@ -326,6 +330,15 @@ final class AppModel: ObservableObject {
     }
 
     func disconnect() async {
+        await endConnection(deleteServerData: false)
+    }
+
+    func deleteAccount() async {
+        guard canDeleteAccount else { return }
+        await endConnection(deleteServerData: true)
+    }
+
+    private func endConnection(deleteServerData: Bool) async {
         guard isPaired else { return }
         isBusy = true
         errorMessage = nil
@@ -343,21 +356,37 @@ final class AppModel: ObservableObject {
             baseURL = try APIClient.validatedBaseURL(serverAddress)
             installationID = try keychain.installationID()
         } catch {
-            errorMessage = "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+            errorMessage = deleteServerData
+                ? "Server data was not deleted. This iPhone remains connected; try again. \(error.localizedDescription)"
+                : "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
             return
         }
 
         do {
-            let outcome = try await transport.revokeDevice(
-                baseURL: baseURL,
-                credential: credential,
-                installationID: installationID
-            )
-            guard outcome == "revoked" else {
+            let outcome: String
+            let expectedOutcome: String
+            if deleteServerData {
+                outcome = try await transport.deleteAccount(
+                    baseURL: baseURL,
+                    credential: credential,
+                    installationID: installationID
+                )
+                expectedOutcome = "deleted"
+            } else {
+                outcome = try await transport.revokeDevice(
+                    baseURL: baseURL,
+                    credential: credential,
+                    installationID: installationID
+                )
+                expectedOutcome = "revoked"
+            }
+            guard outcome == expectedOutcome else {
                 throw APIClientError.invalidResponse
             }
         } catch {
-            errorMessage = "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+            errorMessage = deleteServerData
+                ? "Server data was not deleted. This iPhone remains connected; try again. \(error.localizedDescription)"
+                : "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
             return
         }
 
@@ -375,9 +404,13 @@ final class AppModel: ObservableObject {
         do {
             try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
-            statusMessage = "Server access was revoked and local protected data was removed."
+            statusMessage = deleteServerData
+                ? "FitKiku server data and local protected data were deleted. Apple Health was unchanged."
+                : "Server access was revoked and local protected data was removed."
         } catch {
-            errorMessage = "Server access was revoked. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
+            errorMessage = deleteServerData
+                ? "FitKiku server data was deleted. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
+                : "Server access was revoked. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
         }
     }
 
@@ -392,9 +425,9 @@ final class AppModel: ObservableObject {
         do {
             try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
-            statusMessage = "Local protected data for the revoked connection was removed."
+            statusMessage = "Local protected data for the ended connection was removed."
         } catch {
-            errorMessage = "Server access is already revoked, but local protected-data cleanup is still pending. \(error.localizedDescription)"
+            errorMessage = "Server access has already ended, but local protected-data cleanup is still pending. \(error.localizedDescription)"
         }
     }
 
@@ -589,7 +622,8 @@ extension AppModel {
                     retentionDisclosure:
                         "Daily summaries are retained until deletion is requested. "
                         + "Revoking stops future access but does not delete stored summaries.",
-                    aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider."
+                    aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider.",
+                    requiresTimezone: true
                 )
             )
         case .current:
@@ -652,7 +686,8 @@ extension AppModel {
                 sleep: partial ? .partial : .complete
             ),
             missingLocalDates: partial ? ["2026-04-06"] : [],
-            dataFreshness: freshness
+            dataFreshness: freshness,
+            canDeleteAccount: true
         )
     }
 
@@ -709,12 +744,21 @@ private struct SyntheticDemoTransport: AppTransport {
     func pairAgent(
         baseURL _: URL,
         pairingToken _: String,
-        installationID _: String
+        installationID _: String,
+        timezone _: String?
     ) async throws -> String {
         throw APIClientError.transport
     }
 
     func revokeDevice(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> String {
+        throw APIClientError.transport
+    }
+
+    func deleteAccount(
         baseURL _: URL,
         credential _: String,
         installationID _: String

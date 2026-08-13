@@ -8,7 +8,9 @@ explicit user approval.
 
 The current product reads only daily Steps and Sleep. It shows the destination
 before connection, keeps unknown or partial coverage visible, reports delivery
-freshness, and lets the user revoke future access.
+freshness, and lets the user revoke future access. The release-candidate source
+also supports isolated anonymous guest pairing and authenticated in-app account
+deletion without modifying Apple Health.
 
 ## Current status
 
@@ -39,7 +41,8 @@ Still under validation:
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
 - onboarding and retention with people outside the owner setup;
-- production gateway operations and App Store review.
+- deployment of the disabled public-onboarding boundary, production gateway
+  operations, and App Store review.
 
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;

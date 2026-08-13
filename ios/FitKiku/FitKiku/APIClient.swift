@@ -45,9 +45,15 @@ protocol AgentPairingTransport: Sendable {
     func pairAgent(
         baseURL: URL,
         pairingToken: String,
-        installationID: String
+        installationID: String,
+        timezone: String?
     ) async throws -> String
     func revokeDevice(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> String
+    func deleteAccount(
         baseURL: URL,
         credential: String,
         installationID: String
@@ -101,6 +107,7 @@ struct AgentGrantPreview: Codable, Equatable, Sendable {
     let expiresAt: String
     let retentionDisclosure: String
     let aiProcessingDisclosure: String
+    let requiresTimezone: Bool?
 
     var formattedExpiresAt: String {
         guard let date = AppDate.parseTimestamp(expiresAt) else { return expiresAt }
@@ -112,11 +119,13 @@ struct AgentPairRequest: Codable, Equatable, Sendable {
     let pairingToken: String
     let installationID: String
     let appVersion: String
+    let timezone: String?
 
     private enum CodingKeys: String, CodingKey {
         case pairingToken = "pairing_token"
         case installationID = "installation_id"
         case appVersion = "app_version"
+        case timezone
     }
 }
 
@@ -140,6 +149,7 @@ struct DeviceStatusResponse: Codable, Equatable, Sendable {
     let latestCoverage: HealthCoverage?
     let missingLocalDates: [String]
     let dataFreshness: DeviceDataFreshness
+    let canDeleteAccount: Bool?
 }
 
 enum DeviceDataFreshness: String, Codable, Equatable, Sendable {
@@ -156,6 +166,7 @@ struct DeviceDeliveryStatus: Equatable, Sendable {
     let latestCoverage: HealthCoverage?
     let missingLocalDates: [String]
     let dataFreshness: DeviceDataFreshness
+    let canDeleteAccount: Bool
 }
 
 enum PairingPayloadError: LocalizedError, Equatable {
@@ -414,12 +425,14 @@ struct APIClient: AppTransport, Sendable {
     func pairAgent(
         baseURL: URL,
         pairingToken: String,
-        installationID: String
+        installationID: String,
+        timezone: String?
     ) async throws -> String {
         let request = try makeAgentPairRequest(
             baseURL: baseURL,
             pairingToken: pairingToken,
-            installationID: installationID
+            installationID: installationID,
+            timezone: timezone
         )
         let data = try await perform(request)
         let credential = try CanonicalJSON.decoder().decode(PairResponse.self, from: data).credential
@@ -433,6 +446,22 @@ struct APIClient: AppTransport, Sendable {
         installationID: String
     ) async throws -> String {
         let request = try makeDeviceRevokeRequest(
+            baseURL: baseURL,
+            credential: credential,
+            installationID: installationID
+        )
+        let data = try await perform(request)
+        let outcome = try CanonicalJSON.decoder().decode(DeviceRevokeResponse.self, from: data).outcome
+        guard !outcome.isEmpty else { throw APIClientError.invalidResponse }
+        return outcome
+    }
+
+    func deleteAccount(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> String {
+        let request = try makeDeleteAccountRequest(
             baseURL: baseURL,
             credential: credential,
             installationID: installationID
@@ -497,7 +526,8 @@ struct APIClient: AppTransport, Sendable {
             lastDeviceGeneratedAt: deviceGenerated,
             latestCoverage: response.latestCoverage,
             missingLocalDates: response.missingLocalDates,
-            dataFreshness: response.dataFreshness
+            dataFreshness: response.dataFreshness,
+            canDeleteAccount: response.canDeleteAccount ?? false
         )
     }
 
@@ -533,7 +563,8 @@ struct APIClient: AppTransport, Sendable {
     func makeAgentPairRequest(
         baseURL: URL,
         pairingToken: String,
-        installationID: String
+        installationID: String,
+        timezone: String? = nil
     ) throws -> URLRequest {
         guard Self.isValidPairingToken(pairingToken) else {
             throw APIClientError.invalidPairingToken
@@ -546,7 +577,8 @@ struct APIClient: AppTransport, Sendable {
             AgentPairRequest(
                 pairingToken: pairingToken,
                 installationID: installationID,
-                appVersion: Self.applicationVersion
+                appVersion: Self.applicationVersion,
+                timezone: timezone
             )
         )
         return request
@@ -559,6 +591,23 @@ struct APIClient: AppTransport, Sendable {
     ) throws -> URLRequest {
         guard !credential.isEmpty else { throw APIClientError.invalidResponse }
         var request = URLRequest(url: endpoint("healthkit/device/revoke", baseURL: baseURL))
+        request.httpMethod = "POST"
+        request.timeoutInterval = pairingTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try CanonicalJSON.encoder(sortedKeys: false).encode(
+            DeviceRevokeRequest(installationID: installationID)
+        )
+        return request
+    }
+
+    func makeDeleteAccountRequest(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) throws -> URLRequest {
+        guard !credential.isEmpty else { throw APIClientError.invalidResponse }
+        var request = URLRequest(url: endpoint("healthkit/device/delete-account", baseURL: baseURL))
         request.httpMethod = "POST"
         request.timeoutInterval = pairingTimeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
