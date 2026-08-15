@@ -6,7 +6,7 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** release candidate exported; App Store Connect record and upload pending
+- **Current status:** release candidate exported; App Store Connect record verification and upload pending
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
