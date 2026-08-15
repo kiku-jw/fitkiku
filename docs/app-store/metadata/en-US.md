@@ -19,6 +19,7 @@
 - **Privacy Choices URL:** `https://kikuai.dev/fitkiku/support/`
 - **Support URL:** `https://kikuai.dev/fitkiku/support/`
 - **Marketing URL:** `https://kikuai.dev/fitkiku/`
+- **Public support and App Review email:** `fitkiku@kikuai.dev`
 
 Do not choose a final seller name, copyright owner, territory set, or age
 rating on the owner's behalf. Those fields belong to the enrolled App Store
@@ -106,10 +107,14 @@ Pair Link. Opening the link shows a metadata-only preview. No health summary is
 sent until the reviewer approves the named HTTPS destination and separately
 grants Apple Health read access.
 
-For review, use the active sample path supplied in App Store Connect. The
-sample must exercise the real Release flow and an active reviewer-accessible
-backend; the repository's synthetic Debug screenshot mode is not a reviewer
-demo.
+For review, open
+`https://fitkiku-origin.kikuai.dev/healthkit/connect`. Choose **Create Pair
+Link**, then open or copy that link to the review iPhone. This creates a fresh
+anonymous grant through the real public endpoint and exercises the real Release
+consent flow against the reviewer-accessible backend. The page keeps its
+credential only in the open browser tab, displays connection state only, and
+does not request or render Health values. The repository's synthetic Debug
+screenshot mode is not a reviewer demo.
 
 After connection:
 
@@ -131,27 +136,29 @@ service and its review position are finalized.
 
 ### Required private App Store Connect inputs
 
-- Reviewer first and last name, phone number, and email
+- Reviewer first and last name and phone number
+- Reviewer email: `fitkiku@kikuai.dev`
 - Exact numbered review steps matching the uploaded build
-- Active reviewer sample Pair Link or fully featured Release demo path
-- Any required demo credentials entered only in App Store Connect
+- Same-origin connection-check URL:
+  `https://fitkiku-origin.kikuai.dev/healthkit/connect`
+- Any required demo credentials entered only in App Store Connect; the current
+  connection-check path requires none
 - Backend availability window and support contact during review
 
 ## Export compliance worksheet
 
-The app uses HTTPS/TLS and CryptoKit HMAC. Complete Apple's current export
-compliance questionnaire from the exact archive. Do not set
-`ITSAppUsesNonExemptEncryption` or claim an exemption until the owner has
-confirmed the answers App Store Connect requests.
+The app uses Apple-provided `URLSession` HTTPS/TLS and CryptoKit HMAC. The exact
+1.0 (1) archive declares `ITSAppUsesNonExemptEncryption = NO`; Apple documents
+that apps limited to encryption within its operating system do not require App
+Store Connect encryption documentation. Confirm the processed build reports
+the same answer before submission.
 
 ## Submission blockers that metadata cannot close
 
-- Paid Apple Developer Program enrollment and an App Store Connect app record
+- App Store Connect app record for the registered production Bundle ID
 - Submission-identity decision for Apple's sensitive-data legal-entity guidance
-- Reviewer-accessible production boundary or a real fully featured Release demo
-- Final retention/provider disclosure and deletion handling
 - Frozen physical-iPhone reliability and accessibility evidence
-- Signed distribution archive, upload, processing, privacy report, and validation
+- App Store Connect upload, processing, and validation of the signed archive
 - Owner approval to submit
 
 ## Apple primary sources
@@ -161,3 +168,4 @@ confirmed the answers App Store Connect requests.
 - [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
 - [Export compliance overview](https://developer.apple.com/help/app-store-connect/manage-app-information/overview-of-export-compliance/)
+- [Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations)

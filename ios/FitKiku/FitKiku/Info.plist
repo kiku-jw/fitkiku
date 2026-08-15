@@ -33,10 +33,14 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSHealthShareUsageDescription</key>
 	<string>FitKiku reads your Steps and Sleep so your approved agent can use recent daily summaries.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>FitKiku does not request permission to write to or modify Apple Health data.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

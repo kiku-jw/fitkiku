@@ -6,27 +6,29 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** local release preparation only
+- **Current status:** release candidate exported; App Store Connect record and upload pending
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
-- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-13
+- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-15
 
 ## Hard release gates
 
-- [ ] Owner explicitly approves Apple Developer Program enrollment/payment.
+- [x] Paid Apple Developer Program access is active.
+- [x] Permanent App ID `com.kikuai.fitkiku.health` is registered with HealthKit.
 - [ ] The submission identity is resolved with Apple: FitKiku is a non-medical
       Health & Fitness utility, but Guideline 5.1.1(ix) says apps requiring
       sensitive user information should be submitted by the legal entity
       providing the service. FitKiku currently has no legal-entity submission
       identity, so review acceptance under an individual seller is unproven.
 - [ ] App Store Connect app record exists and the Bundle ID matches the build.
-- [ ] A production HTTPS backend supports the intended public user boundary.
-- [ ] App Review can exercise the complete flow through an active demo account,
-      fully featured demo mode, or reviewer-only sample Pair Link and backend.
-- [ ] Public support and privacy-policy URLs are live and owned; complete the
-      final production retention/provider disclosures before submission.
+- [x] The allowlisted production HTTPS backend supports the anonymous reviewer
+      boundary.
+- [x] App Review can create a fresh anonymous grant through the same-origin
+      connection check without receiving a reusable credential in review notes.
+- [x] Public support and privacy-policy URLs are live and match the deployed
+      retention, recovery-copy, infrastructure, and AI-provider boundaries.
 - [ ] Physical-iPhone reliability and accessibility passes meet their separate
       protocols; UI polish does not substitute for them.
 - [ ] The final archive is uploaded and processed without unresolved warnings.
@@ -112,8 +114,9 @@ and reshape the business decision before changing the binary.
       it explains in-app anonymous-account deletion and opens a pre-addressed
       support email for process guidance without collecting health data in a
       web form.
-- [ ] App Review contact name, phone, and email — owner-provided in App Store
-      Connect, never committed here.
+- [x] Public support and App Review email — `fitkiku@kikuai.dev`.
+- [ ] App Review contact name and phone — owner-provided in App Store Connect,
+      never committed here.
 
 Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
@@ -128,8 +131,8 @@ Public setup creates an anonymous FitKiku guest with no email, password, or
 recovery identity. The paired iOS Settings screen exposes **Delete FitKiku
 account and data** only for that guest; server confirmation precedes protected
 local cleanup, and the confirmation states that Apple Health is unchanged.
-Private-owner connections remain revocation-only. The hosted public boundary is
-implemented in source but is not deployed or enabled.
+Private-owner connections remain revocation-only. The limited reviewer boundary
+is deployed; it is not a claim of broad hosted enrollment.
 
 ## App Privacy candidate answers
 
@@ -144,11 +147,12 @@ immediately before submission. They are deliberately conservative.
 - [x] No advertising or tracking SDK is in the target.
 - [x] `PrivacyInfo.xcprivacy` declares no tracking and conservatively declares
       Health and the stable installation Device ID for App Functionality.
-- [ ] Verify that retention, deletion, AI-provider sharing, and source-detail
-      handling in the public privacy policy match the deployed destination.
-- [ ] Confirm no required-reason API category appears in the final privacy
-      report; the current first-party target declares none.
-- [ ] Generate and review Xcode's privacy report from the final archive.
+- [x] Retention, deletion, AI-provider sharing, and source-detail handling in
+      the public privacy policy match the deployed destination.
+- [x] Xcode's aggregate privacy report was generated from the exact 2026-08-15
+      archive and visually reviewed. It contains only Health and Device ID,
+      both linked for App Functionality with tracking `NO`; it contains no
+      required-reason API section.
 
 HealthKit-derived data must never be used for advertising, marketing, or
 use-based data mining. The app must disclose the specific Health data it reads
@@ -160,8 +164,9 @@ Prepare review notes with only non-secret, reviewer-specific material:
 
 1. FitKiku reads Steps and Sleep from HealthKit and never writes HealthKit.
 2. The primary setup path begins in a compatible agent, which creates a
-   single-use Pair Link. Supply App Review an active sample Pair Link or a
-   fully featured demo path.
+   single-use Pair Link. For review, supply the stable same-origin
+   `/healthkit/connect` page; do not paste a reusable Pair Link or bearer into
+   review notes.
 3. Opening a Pair Link performs a metadata-only preview. Health data transfer
    begins only after explicit in-app approval and Health authorization.
 4. State that background delivery is best effort and that foreground catch-up
@@ -223,10 +228,11 @@ release candidate.
 - [x] Final English source copy is reviewed across the synthetic release states;
       Russian/Ukrainian are optional later releases and must not be machine-
       published without review.
-- [ ] Marketing version and monotonically increasing build number are set for
-      the exact archive.
-- [ ] Encryption/export-compliance answers are completed for TLS and CryptoKit
-      HMAC use; do not guess or hide cryptography.
+- [x] The local candidate archive reports marketing version 1.0 and build 1.
+- [ ] The final distribution archive uses a still-valid monotonically
+      increasing build number at upload time.
+- [x] The exact archive declares `ITSAppUsesNonExemptEncryption = NO`; FitKiku
+      uses only Apple-provided `URLSession` HTTPS and CryptoKit HMAC.
 - [ ] Final archive passes Xcode validation after enrollment and app-record
       creation.
 - [x] The app registers the `fitkiku-health://` Pair Link scheme used by the
@@ -259,26 +265,30 @@ release candidate.
 
 ## Latest local release receipt
 
-- [x] 60/60 iPhone 17 / iOS 26.5 Simulator tests pass on the current source,
-      including account deletion, old-backend compatibility, and fail-closed
-      protected cleanup.
-- [x] The public iOS mirror independently passes the same 60-test suite.
-- [x] A fresh unsigned generic-device Release archive succeeds, contains a
-      valid privacy manifest and App Icon metadata, carries the HealthKit
-      entitlement, and excludes DEBUG synthetic markers.
+- [x] On 2026-08-15, the exact release source passed 60/60 iPhone 17 / iOS 26.5
+      Simulator tests and a Release analysis pass.
+- [x] A fresh 1.0 (1) archive exported as an App Store Connect IPA signed by
+      Apple Distribution. Its profile has no device list, disables
+      `get-task-allow`, carries HealthKit and background-delivery entitlements,
+      and expires on 2027-08-13.
+- [x] The exported bundle contains both HealthKit purpose strings, the exempt-
+      encryption declaration, a no-tracking privacy manifest, and no synthetic-
+      demo marker.
+- [x] Xcode's aggregate privacy report matches the conservative App Privacy
+      worksheet: linked Health and Device ID for App Functionality, no tracking.
+- [x] The public reviewer lifecycle and anonymous deletion path have passed one
+      external synthetic issue-to-delete check with old-credential denial.
 - [x] Public product, Privacy, Support, and agent-readable pages describe the
-      anonymous deletion boundary and explicitly state that hosted enrollment
-      is not live.
+      limited reviewer boundary without claiming App Store availability.
 - [x] The source intentionally contains no Associated Domains entitlement;
       the 1.0 Pair Link path uses its registered custom URL scheme instead.
-- [ ] Install this exact release-hardening source on a physical iPhone only
-      after the active `b99f0fb` reliability window completes or is explicitly
-      abandoned; replacement starts a new evidence window.
+- [ ] Install and exercise this exact release source on a physical iPhone;
+      HealthKit foreground sync, VoiceOver, and background delivery remain
+      separate evidence gates.
 
-These local and public-source checks do not prove a live reviewer flow. Public
-runtime deployment/readback, final retention/provider disclosures, distribution
-signing, App Store Connect validation, and physical-device proof remain hard
-gates.
+Local export integrity and the live reviewer path pass. App Store Connect
+record creation, upload/processing, physical-device proof, submission identity,
+and owner approval to submit remain separate hard gates.
 
 ## Local verification commands
 
@@ -312,6 +322,7 @@ test -f /tmp/FitKiku.xcarchive/Products/Applications/FitKiku.app/PrivacyInfo.xcp
 - [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Manage app privacy](https://developer.apple.com/help/app-store-connect/manage-app-information/manage-app-privacy)
 - [Add a privacy manifest](https://developer.apple.com/documentation/bundleresources/adding-a-privacy-manifest-to-your-app-or-third-party-sdk)
+- [Complying with encryption export regulations](https://developer.apple.com/documentation/security/complying-with-encryption-export-regulations)
 - [App icons](https://developer.apple.com/design/human-interface-guidelines/app-icons/)
 - [App screenshots](https://developer.apple.com/help/app-store-connect/manage-app-information/upload-app-previews-and-screenshots)
 - [Screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications)

@@ -1,1 +1,2 @@
 "NSHealthShareUsageDescription" = "FitKiku reads your Steps and Sleep so your approved agent can use recent daily summaries.";
+"NSHealthUpdateUsageDescription" = "FitKiku does not request permission to write to or modify Apple Health data.";
