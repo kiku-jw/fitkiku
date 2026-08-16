@@ -320,8 +320,9 @@ release candidate.
       was retained.
 - [x] Exact native background-hardening source `68ffc5f` passed 50/50 focused
       and 67/67 full iPhone 17 / iOS 26.5 Simulator tests, then produced a
-      freshly verified signed owner-device Release build 1.0 (2) with the
-      privacy manifest and HealthKit background-delivery entitlement. It was
+      fresh Release analysis and a verified signed owner-device
+      Release build 1.0 (2) with the privacy manifest and HealthKit background-
+      delivery entitlement. It was
       installed over the preserved pairing; install-only produced no receipt,
       one explicit foreground activation restored a current bridge, and a
       separate bounded agent read exited 0. The fixed unattended window is
