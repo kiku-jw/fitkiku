@@ -2,6 +2,7 @@
 
 import Combine
 import Foundation
+import UIKit
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -35,6 +36,7 @@ final class AppModel: ObservableObject {
     private let transport: any AppTransport
     private let health: (any HealthDataReading)?
     private let coordinator: SyncCoordinator?
+    private let protectedDataAvailable: @Sendable () async -> Bool
     private let setupError: String?
     private let syntheticDemoRuntime: Bool
     private var restored = false
@@ -53,6 +55,7 @@ final class AppModel: ObservableObject {
         transport = SyntheticDemoTransport()
         health = nil
         coordinator = nil
+        protectedDataAvailable = { true }
         setupError = nil
         syntheticDemoRuntime = true
         serverAddress = ""
@@ -67,14 +70,19 @@ final class AppModel: ObservableObject {
         healthReader: (any HealthDataReading)? = nil,
         outbox: ProtectedOutbox? = nil,
         stateStore: SyncStateStore? = nil,
-        installHealthObserversAtLaunch: Bool = true
+        installHealthObserversAtLaunch: Bool = true,
+        protectedDataAvailable: @escaping @Sendable () async -> Bool = {
+            await MainActor.run { UIApplication.shared.isProtectedDataAvailable }
+        }
     ) {
         self.defaults = defaults
         self.keychain = keychain
         deleteCredential = credentialCleanup ?? { try keychain.deleteCredential() }
         self.transport = transport
+        self.protectedDataAvailable = protectedDataAvailable
         syntheticDemoRuntime = false
-        serverAddress = defaults.string(forKey: DefaultsKey.serverAddress) ?? ""
+        let storedServerAddress = defaults.string(forKey: DefaultsKey.serverAddress) ?? ""
+        serverAddress = storedServerAddress
 
         do {
             let health: any HealthDataReading
@@ -89,12 +97,24 @@ final class AppModel: ObservableObject {
                 health: health,
                 transport: transport,
                 stateStore: stateStore ?? SyncStateStore(),
-                outbox: outbox
+                outbox: outbox,
+                configuration: defaults.bool(
+                    forKey: DefaultsKey.localCredentialCleanupPending
+                )
+                    ? nil
+                    : Self.launchConfiguration(
+                        keychain: keychain,
+                        serverAddress: storedServerAddress
+                    )
             )
             self.coordinator = coordinator
             setupError = nil
             if installHealthObserversAtLaunch {
-                Self.installObservers(health: health, coordinator: coordinator)
+                Self.installObservers(
+                    health: health,
+                    coordinator: coordinator,
+                    protectedDataAvailable: protectedDataAvailable
+                )
                 observersInstalled = true
             }
         } catch {
@@ -535,7 +555,11 @@ final class AppModel: ObservableObject {
     private func registerObservers() async {
         guard isPaired, healthAccessRequested, let health, let coordinator else { return }
         if !observersInstalled {
-            Self.installObservers(health: health, coordinator: coordinator)
+            Self.installObservers(
+                health: health,
+                coordinator: coordinator,
+                protectedDataAvailable: protectedDataAvailable
+            )
             observersInstalled = true
         }
         do {
@@ -548,11 +572,33 @@ final class AppModel: ObservableObject {
 
     private static func installObservers(
         health: any HealthDataReading,
-        coordinator: SyncCoordinator
+        coordinator: SyncCoordinator,
+        protectedDataAvailable: @escaping @Sendable () async -> Bool
     ) {
         health.installObservers { [weak coordinator] in
-            guard let coordinator else { return }
-            _ = await coordinator.synchronize()
+            guard let coordinator, await protectedDataAvailable() else { return }
+            _ = await coordinator.synchronize(
+                lookbackDays: 2,
+                maxUploadAttempts: 1,
+                stopAfterPendingRecovery: true
+            )
+        }
+    }
+
+    private static func launchConfiguration(
+        keychain: KeychainStore,
+        serverAddress: String
+    ) -> SyncConfiguration? {
+        guard !serverAddress.isEmpty else { return nil }
+        do {
+            guard let credential = try keychain.credential() else { return nil }
+            return SyncConfiguration(
+                baseURL: try APIClient.validatedBaseURL(serverAddress),
+                credential: credential,
+                installationID: try keychain.installationID()
+            )
+        } catch {
+            return nil
         }
     }
 

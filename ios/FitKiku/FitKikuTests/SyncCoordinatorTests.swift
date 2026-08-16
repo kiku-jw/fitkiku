@@ -127,6 +127,27 @@ final class SyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(probe.snapshot(), ["completion"])
     }
 
+    func testHealthObserverDeadlineCompletesAStalledCatchUpExactlyOnce() async {
+        let probe = ObserverEventProbe()
+        let completionExpectation = expectation(description: "HealthKit completion")
+
+        HealthObserverUpdateHandler.handle(
+            error: nil,
+            onChange: {
+                try? await Task.sleep(for: .seconds(1))
+            },
+            completion: {
+                probe.record("completion")
+                completionExpectation.fulfill()
+            },
+            completionDeadline: .milliseconds(10)
+        )
+
+        await fulfillment(of: [completionExpectation], timeout: 0.2)
+        try? await Task.sleep(for: .milliseconds(20))
+        XCTAssertEqual(probe.snapshot(), ["completion"])
+    }
+
     func testLookbackRejectsMoreThanSevenDaysBeforeHealthReadOrUpload() async throws {
         let reference = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T12:00:00Z"))
         let localDate = AppDate.localDate(reference)
@@ -305,5 +326,93 @@ final class SyncCoordinatorTests: XCTestCase {
         XCTAssertEqual(results.first?.outcome, .created)
         let revisions = await transport.revisions(for: staleDate)
         XCTAssertEqual(revisions, [1, 2, 4, 8, 16])
+    }
+
+    func testBackgroundRevisionRecoveryStopsAfterOneAttemptAndKeepsQueue() async throws {
+        let reference = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T12:00:00Z"))
+        let staleDate = AppDate.localDate(reference)
+        let transport = StaleRevisionTransport(staleDate: staleDate)
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let suiteName = "FitKikuTests.\(UUID().uuidString)"
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        let outbox = try ProtectedOutbox(directory: directory)
+        let coordinator = SyncCoordinator(
+            health: FakeHealthReader(),
+            transport: transport,
+            stateStore: SyncStateStore(suiteName: suiteName, storageKey: "confirmed"),
+            outbox: outbox
+        )
+        await coordinator.configure(
+            SyncConfiguration(
+                baseURL: try XCTUnwrap(URL(string: "https://fitkiku.example")),
+                credential: "synthetic-credential",
+                installationID: "fixture-installation-0001"
+            )
+        )
+
+        let results = await coordinator.synchronize(
+            referenceDate: reference,
+            lookbackDays: 1,
+            maxUploadAttempts: 1
+        )
+
+        let revisions = await transport.revisions(for: staleDate)
+        let pending = try await outbox.pending(for: staleDate)
+        XCTAssertEqual(results.first?.outcome, .queued)
+        XCTAssertEqual(revisions, [1])
+        XCTAssertEqual(pending?.revision, 2)
+    }
+
+    func testBackgroundPendingRecoveryStopsBeforeASecondUploadForTheDay() async throws {
+        let reference = try XCTUnwrap(AppDate.parseTimestamp("2026-08-02T12:00:00Z"))
+        let localDate = AppDate.localDate(reference)
+        let transport = StaleRevisionTransport(staleDate: "1900-01-01")
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let suiteName = "FitKikuTests.\(UUID().uuidString)"
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+            UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
+        }
+        let outbox = try ProtectedOutbox(directory: directory)
+        let pendingSummary = DaySummary(
+            localDate: localDate,
+            steps: 1111,
+            stepsCoverage: .complete,
+            sleepIntervals: [],
+            sleepCoverage: .unknown,
+            sources: []
+        )
+        try await outbox.save(PendingDay(summary: pendingSummary, revision: 1))
+        let coordinator = SyncCoordinator(
+            health: FakeHealthReader(),
+            transport: transport,
+            stateStore: SyncStateStore(suiteName: suiteName, storageKey: "confirmed"),
+            outbox: outbox
+        )
+        await coordinator.configure(
+            SyncConfiguration(
+                baseURL: try XCTUnwrap(URL(string: "https://fitkiku.example")),
+                credential: "synthetic-credential",
+                installationID: "fixture-installation-0001"
+            )
+        )
+
+        let results = await coordinator.synchronize(
+            referenceDate: reference,
+            lookbackDays: 1,
+            maxUploadAttempts: 1,
+            stopAfterPendingRecovery: true
+        )
+
+        let revisions = await transport.revisions(for: localDate)
+        let remaining = try await outbox.pending(for: localDate)
+        XCTAssertEqual(results.first?.outcome, .created)
+        XCTAssertEqual(revisions, [1])
+        XCTAssertNil(remaining)
     }
 }

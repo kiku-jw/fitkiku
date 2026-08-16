@@ -15,9 +15,11 @@ deletion without modifying Apple Health.
 ## Current status
 
 FitKiku 1.0 (1) is processed in App Store Connect but has not been submitted to
-App Review. The public repository contains the iOS client and its tests. It does
-**not** imply App Store availability, guaranteed background delivery, medical
-fitness, broad agent compatibility, or a generally available paid gateway.
+App Review. The public source has advanced to 1.0 (2); build 2 is installed on
+the owner iPhone for a fixed background-delivery observation window but is not
+uploaded to App Store Connect. The repository does **not** imply App Store
+availability, guaranteed background delivery, medical fitness, broad agent
+compatibility, or a generally available paid gateway.
 
 Proved so far:
 
@@ -33,8 +35,14 @@ Proved so far:
   asynchronous connection restore;
 - ordinary foreground refresh preserves observer registration while explicit
   disconnect still stops it;
-- deterministic simulator tests for pairing, storage, canonical JSON, retries,
-  coverage, freshness, and malformed responses.
+- cold HealthKit wakes use launch-time pairing state without starting the
+  foreground UI catch-up, skip reads while protected data is unavailable, and
+  leave failed updates in the existing protected retry queue;
+- background work requests HealthKit's earliest supported opportunity but is
+  bounded to two local days, one upload attempt per day, and an exactly-once
+  completion deadline;
+- 67 deterministic simulator tests for pairing, storage, canonical JSON,
+  retries, coverage, freshness, cold launch, and malformed responses;
 - a real owner-iPhone foreground catch-up from stale state through current
   server confirmation and a bounded existing-agent read;
 - live anonymous grant issuance with a credential-free Pair Link, denied reads
@@ -42,7 +50,7 @@ Proved so far:
 - a machine-readable setup protocol that a capable HTTPS agent can follow
   without asking the person for a server URL, password, or API token.
 
-Still under validation:
+Still under validation for exact build-2 source `68ffc5f`:
 
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
@@ -110,8 +118,10 @@ xcodebuild \
   test
 ```
 
-The latest observer-lifecycle correction has passed build-for-testing and a
-signed owner-device foreground recovery. Unattended delivery remains in the
+The background-hardening source has passed 50/50 focused and 67/67 full
+simulator tests, a signed owner-device Release build, a preserved-pairing
+install, and one explicit foreground activation. Its fixed 2026-08-16 through
+2026-08-22 server-first window remains open; unattended delivery stays in the
 validation list above rather than being presented as guaranteed.
 
 The 1.0 connection flow uses the registered `fitkiku-health://` custom URL

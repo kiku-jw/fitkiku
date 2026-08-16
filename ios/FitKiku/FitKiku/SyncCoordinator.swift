@@ -5,6 +5,7 @@ import Foundation
 enum SyncCoordinatorError: LocalizedError {
     case notConfigured
     case invalidLookback
+    case invalidUploadAttempts
     case unexpectedOutcome
 
     var errorDescription: String? {
@@ -13,6 +14,8 @@ enum SyncCoordinatorError: LocalizedError {
             "Pair the app before syncing."
         case .invalidLookback:
             "Sync history must be between one and seven days."
+        case .invalidUploadAttempts:
+            "Upload attempts must be between one and ten."
         case .unexpectedOutcome:
             "The server could not confirm the daily update."
         }
@@ -50,12 +53,14 @@ actor SyncCoordinator {
         health: any HealthDataReading,
         transport: any HealthTransport = APIClient(),
         stateStore: SyncStateStore = SyncStateStore(),
-        outbox: ProtectedOutbox
+        outbox: ProtectedOutbox,
+        configuration: SyncConfiguration? = nil
     ) {
         self.health = health
         self.transport = transport
         self.stateStore = stateStore
         self.outbox = outbox
+        self.configuration = configuration
     }
 
     func configure(_ configuration: SyncConfiguration) {
@@ -64,7 +69,9 @@ actor SyncCoordinator {
 
     func synchronize(
         referenceDate: Date = Date(),
-        lookbackDays: Int = 3
+        lookbackDays: Int = 3,
+        maxUploadAttempts: Int = 10,
+        stopAfterPendingRecovery: Bool = false
     ) async -> [DaySyncResult] {
         guard let configuration else {
             return [
@@ -84,6 +91,15 @@ actor SyncCoordinator {
                 )
             ]
         }
+        guard (1 ... 10).contains(maxUploadAttempts) else {
+            return [
+                DaySyncResult(
+                    localDate: AppDate.localDate(referenceDate),
+                    outcome: .failed,
+                    message: SyncCoordinatorError.invalidUploadAttempts.localizedDescription
+                )
+            ]
+        }
         guard !running else { return [] }
         running = true
         defer { running = false }
@@ -91,7 +107,14 @@ actor SyncCoordinator {
         var results: [DaySyncResult] = []
         for offset in 0 ..< lookbackDays {
             let dayStart = AppDate.addingDays(-offset, to: referenceDate)
-            results.append(await synchronizeDay(dayStart, configuration: configuration))
+            results.append(
+                await synchronizeDay(
+                    dayStart,
+                    configuration: configuration,
+                    maxUploadAttempts: maxUploadAttempts,
+                    stopAfterPendingRecovery: stopAfterPendingRecovery
+                )
+            )
         }
         return results
     }
@@ -112,15 +135,28 @@ actor SyncCoordinator {
 
     private func synchronizeDay(
         _ dayStart: Date,
-        configuration: SyncConfiguration
+        configuration: SyncConfiguration,
+        maxUploadAttempts: Int,
+        stopAfterPendingRecovery: Bool
     ) async -> DaySyncResult {
         let localDate = AppDate.localDate(dayStart)
         var resumedOutcome: DaySyncResult.Outcome?
         do {
             if let pending = try await outbox.pending(for: localDate) {
-                let resumed = try await upload(pending, configuration: configuration)
+                let resumed = try await upload(
+                    pending,
+                    configuration: configuration,
+                    maxAttempts: maxUploadAttempts
+                )
                 resumedOutcome = resumed.outcome
                 try await confirm(resumed.pending)
+                if stopAfterPendingRecovery {
+                    return DaySyncResult(
+                        localDate: localDate,
+                        outcome: resumed.outcome,
+                        message: nil
+                    )
+                }
             }
 
             let summary = await health.readDay(dayStart)
@@ -137,7 +173,11 @@ actor SyncCoordinator {
             }
 
             try await outbox.save(pending)
-            let uploaded = try await upload(pending, configuration: configuration)
+            let uploaded = try await upload(
+                pending,
+                configuration: configuration,
+                maxAttempts: maxUploadAttempts
+            )
             try await confirm(uploaded.pending)
             return DaySyncResult(localDate: localDate, outcome: uploaded.outcome, message: nil)
         } catch {
@@ -154,10 +194,11 @@ actor SyncCoordinator {
 
     private func upload(
         _ pending: PendingDay,
-        configuration: SyncConfiguration
+        configuration: SyncConfiguration,
+        maxAttempts: Int
     ) async throws -> (pending: PendingDay, outcome: DaySyncResult.Outcome) {
         var candidate = pending
-        for attempt in 0 ..< 10 {
+        for attempt in 0 ..< maxAttempts {
             let outcome = try await send(candidate, configuration: configuration)
             switch outcome {
             case "created":
@@ -175,7 +216,7 @@ actor SyncCoordinator {
                     revision: max(candidate.revision + 1, candidate.revision * 2)
                 )
                 try await outbox.save(candidate)
-                if attempt == 9 {
+                if attempt == maxAttempts - 1 {
                     throw SyncCoordinatorError.unexpectedOutcome
                 }
             default:

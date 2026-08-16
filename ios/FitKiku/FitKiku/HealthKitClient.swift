@@ -26,6 +26,8 @@ protocol HealthDataReading: Sendable {
 }
 
 final class HealthKitClient: HealthDataReading, @unchecked Sendable {
+    static let backgroundDeliveryFrequency: HKUpdateFrequency = .immediate
+
     private struct StepsRead: Sendable {
         let value: Int?
         let coverage: CoverageState
@@ -103,7 +105,10 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         let types: [HKSampleType] = [stepType, sleepType]
         do {
             for type in types {
-                try await store.enableBackgroundDelivery(for: type, frequency: .hourly)
+                try await store.enableBackgroundDelivery(
+                    for: type,
+                    frequency: Self.backgroundDeliveryFrequency
+                )
             }
         } catch {
             await stopObservers()
@@ -302,29 +307,44 @@ enum HealthObserverUpdateHandler {
     static func handle(
         error: Error?,
         onChange: @escaping @Sendable () async -> Void,
-        completion: @escaping () -> Void
+        completion: @escaping () -> Void,
+        completionDeadline: Duration = .seconds(12)
     ) {
         guard error == nil else {
             completion()
             return
         }
         let completionBox = ObserverCompletion(completion)
+        let timeoutTask = Task {
+            do {
+                try await Task.sleep(for: completionDeadline)
+            } catch {
+                return
+            }
+            completionBox.call()
+        }
         Task {
             await onChange()
+            timeoutTask.cancel()
             completionBox.call()
         }
     }
 }
 
 private final class ObserverCompletion: @unchecked Sendable {
-    private let action: () -> Void
+    private let lock = NSLock()
+    private var action: (() -> Void)?
 
     init(_ action: @escaping () -> Void) {
         self.action = action
     }
 
     func call() {
-        action()
+        let pendingAction = lock.withLock {
+            defer { action = nil }
+            return action
+        }
+        pendingAction?()
     }
 }
 

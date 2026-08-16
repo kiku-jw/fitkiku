@@ -12,7 +12,8 @@
   must be saved before the version is added to a review submission.
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
-- **Current version/build:** 1.0 (1)
+- **Current processed App Store build:** 1.0 (1)
+- **Current source/owner-device build:** 1.0 (2)
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
 - **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-15
 
@@ -317,11 +318,22 @@ release candidate.
       restored current server freshness, and enabled one bounded existing-agent
       read. No Health value, source, credential, Pair Link, or device identifier
       was retained.
+- [x] Exact native background-hardening source `68ffc5f` passed 50/50 focused
+      and 67/67 full iPhone 17 / iOS 26.5 Simulator tests, then produced a
+      freshly verified signed owner-device Release build 1.0 (2) with the
+      privacy manifest and HealthKit background-delivery entitlement. It was
+      installed over the preserved pairing; install-only produced no receipt,
+      one explicit foreground activation restored a current bridge, and a
+      separate bounded agent read exited 0. The fixed unattended window is
+      still open, so this is not a background-reliability pass.
+- [ ] Build 2 has not been App Store-distribution archived, exported, uploaded,
+      processed, selected, or submitted. Processed build 1 must not be submitted
+      as though it contains the build-2 hardening.
 - [x] A cold agent test discovered the gateway and required paths from the live
       Markdown alone, then passed anonymous issuance, credential-free Pair Link,
       pending-read denial, revocation, and revoked-read denial.
-- [ ] Unattended background reliability remains `NO-GO`: the pre-launch state
-      was stale through 2026-08-13 with three following local dates missing.
+- [ ] The previous binary's unattended delivery remains `NO-GO` after the stale
+      three-day interval. Build 2 is `UNKNOWN` inside its new fixed window.
       Physical VoiceOver, offline, reboot, delayed-Watch, force-quit, and fresh
       external-participant flows remain unproved.
 

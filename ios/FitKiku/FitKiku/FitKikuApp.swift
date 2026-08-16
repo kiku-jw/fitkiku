@@ -21,18 +21,6 @@ final class FitKikuAppDelegate: NSObject, UIApplicationDelegate {
         super.init()
     }
 
-    func application(
-        _: UIApplication,
-        didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil
-    ) -> Bool {
-        guard !model.isSyntheticDemo,
-              ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
-        else {
-            return true
-        }
-        Task { await model.restore() }
-        return true
-    }
 }
 
 @main
@@ -43,6 +31,13 @@ struct FitKikuApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(model: appDelegate.model)
+                .task {
+                    guard scenePhase == .active,
+                          !appDelegate.model.isSyntheticDemo,
+                          ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil
+                    else { return }
+                    await appDelegate.model.restore()
+                }
                 .onOpenURL { url in
                     Task { await appDelegate.model.openPairLink(url) }
                 }

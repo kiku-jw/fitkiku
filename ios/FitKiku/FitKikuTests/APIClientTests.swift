@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
+import HealthKit
 import XCTest
 @testable import FitKiku
 
@@ -38,6 +39,7 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
     private var observerStartCount = 0
     private var observerStopCount = 0
     private var dayReadCount = 0
+    private var observerAction: (@Sendable () async -> Void)?
 
     func requestAuthorization() async throws {}
 
@@ -53,8 +55,11 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
         )
     }
 
-    func installObservers(onChange _: @escaping @Sendable () async -> Void) {
-        lock.withLock { observerInstallCount += 1 }
+    func installObservers(onChange: @escaping @Sendable () async -> Void) {
+        lock.withLock {
+            observerInstallCount += 1
+            observerAction = onChange
+        }
     }
 
     func enableBackgroundDelivery() async throws {
@@ -79,6 +84,11 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
 
     func dayReads() async -> Int {
         lock.withLock { dayReadCount }
+    }
+
+    func triggerObserver() async {
+        let action = lock.withLock { observerAction }
+        await action?()
     }
 }
 
@@ -231,6 +241,11 @@ private final class FailOnceCredentialCleanup {
 
 final class APIClientTests: XCTestCase {
     private let validToken = "abcdefghijklmnopqrstuvwxyzABCDEFG_0123456789-abcd"
+
+    func testBackgroundDeliveryUsesEarliestFrequencyAndBoundedNetworkTimeout() {
+        XCTAssertEqual(HealthKitClient.backgroundDeliveryFrequency, .immediate)
+        XCTAssertEqual(APIClient.defaultIngestTimeout, 5)
+    }
 
     func testBaseURLRequiresHTTPSAndServerRoot() throws {
         XCTAssertEqual(
@@ -862,6 +877,124 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
+    func testColdObserverUsesLaunchConfigurationBeforeForegroundRestore() async throws {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("restored-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { true }
+        )
+        defer {
+            try? keychain.deleteCredential()
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: outboxDirectory)
+        }
+
+        await health.triggerObserver()
+
+        let readsAfterObserver = await health.dayReads()
+        XCTAssertEqual(readsAfterObserver, 2)
+        let counts = await transport.counts()
+        XCTAssertEqual(counts.ingest, 2)
+        XCTAssertEqual(counts.status, 0)
+        XCTAssertEqual(readsAfterObserver, 2)
+        XCTAssertFalse(model.isSyntheticDemo)
+    }
+
+    @MainActor
+    func testObserverSkipsHealthReadsWhileProtectedDataIsUnavailable() async throws {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("restored-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { false }
+        )
+        defer {
+            try? keychain.deleteCredential()
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: outboxDirectory)
+        }
+
+        await health.triggerObserver()
+
+        let reads = await health.dayReads()
+        let counts = await transport.counts()
+        XCTAssertEqual(reads, 0)
+        XCTAssertEqual(counts.ingest, 0)
+        XCTAssertFalse(model.isSyntheticDemo)
+    }
+
+    @MainActor
+    func testColdObserverCannotSendWhileRevokedCredentialCleanupIsPending() async throws {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.local-credential-cleanup-pending")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("revoked-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { true }
+        )
+        defer {
+            try? keychain.deleteCredential()
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: outboxDirectory)
+        }
+
+        await health.triggerObserver()
+
+        let reads = await health.dayReads()
+        let counts = await transport.counts()
+        XCTAssertEqual(reads, 0)
+        XCTAssertEqual(counts.ingest, 0)
+        XCTAssertFalse(model.isSyntheticDemo)
+    }
+
+    @MainActor
     func testRestoreRegistersObserversBeforeRemoteDeliveryStatusCompletes() async throws {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
@@ -1119,7 +1252,9 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
-    private func makeModelHarness() throws -> ModelHarness {
+    private func makeModelHarness(
+        protectedDataAvailable: @escaping @Sendable () async -> Bool = { true }
+    ) throws -> ModelHarness {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -1135,7 +1270,8 @@ final class APIClientTests: XCTestCase {
             transport: transport,
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
-            stateStore: SyncStateStore(suiteName: suiteName)
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: protectedDataAvailable
         )
         return ModelHarness(
             model: model,

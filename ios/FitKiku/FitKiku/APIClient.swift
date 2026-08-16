@@ -272,6 +272,7 @@ enum PairingPayload: Equatable, Sendable {
 struct APIClient: AppTransport, Sendable {
     private static let applicationVersion = "native/1.0"
     private static let pairingTokenLength = 43 ... 128
+    static let defaultIngestTimeout: TimeInterval = 5
 
     private let session: URLSession
     private let redirectDelegate = RejectRedirectDelegate()
@@ -281,7 +282,7 @@ struct APIClient: AppTransport, Sendable {
     init(
         session: URLSession? = nil,
         pairingTimeout: TimeInterval = 20,
-        ingestTimeout: TimeInterval = 30
+        ingestTimeout: TimeInterval = APIClient.defaultIngestTimeout
     ) {
         self.session = session ?? Self.ephemeralSession()
         self.pairingTimeout = pairingTimeout
