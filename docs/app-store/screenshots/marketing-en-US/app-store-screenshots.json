@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 2,
+  "appName": "FitKiku",
+  "themeId": "fitkiku-mono",
+  "connectedCanvas": false,
+  "locales": [
+    "en"
+  ],
+  "locale": "en",
+  "device": "iphone",
+  "orientation": "portrait",
+  "appIcon": "/app-icon.png",
+  "slidesByDevice": {
+    "iphone": [
+      {
+        "id": "fitkiku-hero",
+        "layout": "hero",
+        "label": {
+          "en": "FITKIKU"
+        },
+        "headline": {
+          "en": "Apple Health\nfor your AI."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/01-first-run.jpg",
+        "inverted": true
+      },
+      {
+        "id": "fitkiku-consent",
+        "layout": "device-bottom",
+        "label": {
+          "en": "YOU DECIDE"
+        },
+        "headline": {
+          "en": "Approve every\nconnection."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/02-consent.jpg"
+      },
+      {
+        "id": "fitkiku-context",
+        "layout": "device-top",
+        "label": {
+          "en": "STEPS + SLEEP"
+        },
+        "headline": {
+          "en": "No more daily\ntyping."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/03-current-delivery.jpg",
+        "inverted": true
+      },
+      {
+        "id": "fitkiku-freshness",
+        "layout": "two-devices",
+        "label": {
+          "en": "HONEST STATUS"
+        },
+        "headline": {
+          "en": "Know what’s fresh.\nSee what’s missing."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/04-partial-delivery.jpg",
+        "screenshotSecondary": "/screenshots/apple/iphone/en/03-current-delivery.jpg"
+      }
+    ],
+    "android": [],
+    "ipad": [],
+    "android-7": [],
+    "android-10": [],
+    "feature-graphic": []
+  }
+}

@@ -6,9 +6,10 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** App Store Connect version 1.0 (1) is populated and
-  Apple-confirmed; **Add for Review** is enabled, but the version has not been
-  added to a review submission or submitted to Apple
+- **Current status:** App Store Connect version 1.0 (1) has an Apple-confirmed
+  build and otherwise complete release metadata. **Add for Review** is enabled,
+  but the reviewer phone and email fields were empty on the latest readback and
+  must be saved before the version is added to a review submission.
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
@@ -119,8 +120,10 @@ and reshape the business decision before changing the binary.
       support email for process guidance without collecting health data in a
       web form.
 - [x] Public support and App Review email — `fitkiku@kikuai.dev`.
-- [x] App Review contact details — owner-provided and saved in App Store
-      Connect; private contact values are never committed here.
+- [ ] App Review contact phone and dedicated email — the owner supplied both,
+      but the fields were empty on the 2026-08-16 submission-page readback.
+      Save and read them back immediately before submission; the private phone
+      is never committed here.
 
 Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
@@ -203,6 +206,13 @@ or empty demo states with no credentials or personal health data.
       real asleep minutes, source identifiers, or owner-specific timestamps.
 - [x] Four English screenshots are uploaded to the 6.9-inch set in storefront
       order: first run, consent, current delivery, partial delivery.
+- [x] A four-card marketing replacement was prepared and visually checked at
+      storefront-thumbnail size. Its final upload files are opaque 1320x2868
+      JPEGs under
+      `docs/app-store/screenshots/marketing-en-US/iphone-6.9/`; the reproducible
+      layout input and provenance are documented beside them. This preparation
+      is not proof that the replacement was uploaded or saved in App Store
+      Connect.
 - [ ] Add localized variants only after localized metadata and UI are final.
 
 The checked-in English set is under `docs/app-store/screenshots/en-US/`. Regenerate
@@ -295,8 +305,10 @@ release candidate.
 - [x] Untested Apple Silicon Mac and Vision Pro availability are disabled.
       Version 1.0 is public and free in 148 territories; all 27 EU storefronts
       are unavailable while the DSA trader declaration remains unresolved.
-- [x] App Review contact details are saved, release is manual after approval,
-      screenshot order is verified, and **Add for Review** is enabled.
+- [ ] App Review notes are saved, release is manual after approval, the current
+      screenshot order is verified, and **Add for Review** is enabled. The
+      reviewer phone and email inputs are empty and remain a submission blocker
+      until they are saved and read back.
 - [ ] Install and exercise this exact release source on a physical iPhone;
       HealthKit foreground sync, VoiceOver, and background delivery remain
       separate evidence gates.
