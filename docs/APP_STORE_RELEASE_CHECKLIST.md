@@ -6,7 +6,9 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** release candidate exported; App Store Connect record verification and upload pending
+- **Current status:** App Store Connect version 1.0 (1) is populated and
+  Apple-confirmed; **Add for Review** is enabled, but the version has not been
+  added to a review submission or submitted to Apple
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Current version/build:** 1.0 (1)
@@ -17,12 +19,12 @@
 
 - [x] Paid Apple Developer Program access is active.
 - [x] Permanent App ID `com.kikuai.fitkiku.health` is registered with HealthKit.
-- [ ] The submission identity is resolved with Apple: FitKiku is a non-medical
-      Health & Fitness utility, but Guideline 5.1.1(ix) says apps requiring
-      sensitive user information should be submitted by the legal entity
-      providing the service. FitKiku currently has no legal-entity submission
-      identity, so review acceptance under an individual seller is unproven.
-- [ ] App Store Connect app record exists and the Bundle ID matches the build.
+- [x] The submission-identity decision is recorded: attempt the first review
+      under the enrolled individual seller while describing FitKiku accurately
+      as a non-medical Health & Fitness utility. Apple acceptance under that
+      identity remains unproven until review.
+- [x] App Store Connect app record exists and its Bundle ID matches the
+      Apple-confirmed 1.0 (1) build.
 - [x] The allowlisted production HTTPS backend supports the anonymous reviewer
       boundary.
 - [x] App Review can create a fresh anonymous grant through the same-origin
@@ -31,7 +33,7 @@
       retention, recovery-copy, infrastructure, and AI-provider boundaries.
 - [ ] Physical-iPhone reliability and accessibility passes meet their separate
       protocols; UI polish does not substitute for them.
-- [ ] The final archive is uploaded and processed without unresolved warnings.
+- [x] The final archive is uploaded and processed without unresolved warnings.
 - [ ] Owner explicitly approves submission.
 
 Associated Domains and an Apple App Site Association file are not 1.0 release
@@ -42,7 +44,9 @@ are implemented and tested in the signed binary.
 
 ## Product-page draft
 
-These are working drafts, not published metadata.
+The checked-in source remains the editable release input. On 2026-08-16, the
+English metadata, build selection, and synthetic screenshots were read back
+from App Store Connect. Promotional text remains intentionally empty.
 
 The paste-ready English metadata and review-note template live in
 [`docs/app-store/metadata/en-US.md`](app-store/metadata/en-US.md).
@@ -115,8 +119,8 @@ and reshape the business decision before changing the binary.
       support email for process guidance without collecting health data in a
       web form.
 - [x] Public support and App Review email — `fitkiku@kikuai.dev`.
-- [ ] App Review contact name and phone — owner-provided in App Store Connect,
-      never committed here.
+- [x] App Review contact details — owner-provided and saved in App Store
+      Connect; private contact values are never committed here.
 
 Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
@@ -197,6 +201,8 @@ or empty demo states with no credentials or personal health data.
       screenshot specification.
 - [x] No screenshot contains Pair Links, tokens, server credentials, real Steps,
       real asleep minutes, source identifiers, or owner-specific timestamps.
+- [x] Four English screenshots are uploaded to the 6.9-inch set in storefront
+      order: first run, consent, current delivery, partial delivery.
 - [ ] Add localized variants only after localized metadata and UI are final.
 
 The checked-in English set is under `docs/app-store/screenshots/en-US/`. Regenerate
@@ -229,12 +235,13 @@ release candidate.
       Russian/Ukrainian are optional later releases and must not be machine-
       published without review.
 - [x] The local candidate archive reports marketing version 1.0 and build 1.
-- [ ] The final distribution archive uses a still-valid monotonically
-      increasing build number at upload time.
+- [x] The final distribution archive used the still-valid, monotonically
+      increasing build number 1 at upload time.
 - [x] The exact archive declares `ITSAppUsesNonExemptEncryption = NO`; FitKiku
       uses only Apple-provided `URLSession` HTTPS and CryptoKit HMAC.
-- [ ] Final archive passes Xcode validation after enrollment and app-record
-      creation.
+- [x] App Store Connect processed the final archive and reports binary state
+      **Confirmed**, version 1.0 (1), iPhone device family, iOS 17 minimum, and
+      non-exempt encryption **No**.
 - [x] The app registers the `fitkiku-health://` Pair Link scheme used by the
       current 1.0 connection contract.
 - [x] Settings exposes destructive, confirmed account deletion only after
@@ -282,13 +289,22 @@ release candidate.
       limited reviewer boundary without claiming App Store availability.
 - [x] The source intentionally contains no Associated Domains entitlement;
       the 1.0 Pair Link path uses its registered custom URL scheme instead.
+- [x] App Store Connect readback on 2026-08-16 confirmed the app record,
+      processed build, published Health and Device ID privacy labels, free
+      price, 4+ age rating, and non-medical-device declaration.
+- [x] Untested Apple Silicon Mac and Vision Pro availability are disabled.
+      Version 1.0 is public and free in 148 territories; all 27 EU storefronts
+      are unavailable while the DSA trader declaration remains unresolved.
+- [x] App Review contact details are saved, release is manual after approval,
+      screenshot order is verified, and **Add for Review** is enabled.
 - [ ] Install and exercise this exact release source on a physical iPhone;
       HealthKit foreground sync, VoiceOver, and background delivery remain
       separate evidence gates.
 
-Local export integrity and the live reviewer path pass. App Store Connect
-record creation, upload/processing, physical-device proof, submission identity,
-and owner approval to submit remain separate hard gates.
+Local export integrity, the live reviewer path, App Store Connect record, and
+Apple build processing pass. The version has deliberately not been added to a
+review submission or submitted. Physical-device proof and Apple acceptance
+under the individual seller remain unknown.
 
 ## Local verification commands
 
