@@ -295,8 +295,10 @@ release candidate.
       worksheet: linked Health and Device ID for App Functionality, no tracking.
 - [x] The public reviewer lifecycle and anonymous deletion path have passed one
       external synthetic issue-to-delete check with old-credential denial.
-- [x] Public product, Privacy, Support, and agent-readable pages describe the
-      limited reviewer boundary without claiming App Store availability.
+- [x] KikuAI site commit `1b3b80c` is live. Public product, Privacy, Support,
+      and agent-readable pages describe the limited reviewer boundary without
+      claiming App Store availability and expose the executable bounded agent
+      protocol.
 - [x] The source intentionally contains no Associated Domains entitlement;
       the 1.0 Pair Link path uses its registered custom URL scheme instead.
 - [x] App Store Connect readback on 2026-08-16 confirmed the app record,
@@ -309,14 +311,25 @@ release candidate.
       screenshot order is verified, and **Add for Review** is enabled. The
       reviewer phone and email inputs are empty and remain a submission blocker
       until they are saved and read back.
-- [ ] Install and exercise this exact release source on a physical iPhone;
-      HealthKit foreground sync, VoiceOver, and background delivery remain
-      separate evidence gates.
+- [x] On 2026-08-16, the exact release source was installed on the owner iPhone
+      without erasing the existing pairing. Install-only produced no receipt;
+      one explicit foreground launch recovered three missing local dates,
+      restored current server freshness, and enabled one bounded existing-agent
+      read. No Health value, source, credential, Pair Link, or device identifier
+      was retained.
+- [x] A cold agent test discovered the gateway and required paths from the live
+      Markdown alone, then passed anonymous issuance, credential-free Pair Link,
+      pending-read denial, revocation, and revoked-read denial.
+- [ ] Unattended background reliability remains `NO-GO`: the pre-launch state
+      was stale through 2026-08-13 with three following local dates missing.
+      Physical VoiceOver, offline, reboot, delayed-Watch, force-quit, and fresh
+      external-participant flows remain unproved.
 
 Local export integrity, the live reviewer path, App Store Connect record, and
 Apple build processing pass. The version has deliberately not been added to a
-review submission or submitted. Physical-device proof and Apple acceptance
-under the individual seller remain unknown.
+review submission or submitted. Physical foreground transfer passes, but
+unattended delivery and physical VoiceOver remain incomplete. Apple acceptance
+under the individual seller and fresh external-user usability remain unknown.
 
 ## Local verification commands
 

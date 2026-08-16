@@ -14,10 +14,10 @@ deletion without modifying Apple Health.
 
 ## Current status
 
-FitKiku is in private owner testing and App Store preparation. The public
-repository contains the iOS client and its tests. It does **not** imply App Store
-availability, public enrollment, guaranteed background delivery, medical
-fitness, or a hosted gateway service for third parties.
+FitKiku 1.0 (1) is processed in App Store Connect but has not been submitted to
+App Review. The public repository contains the iOS client and its tests. It does
+**not** imply App Store availability, guaranteed background delivery, medical
+fitness, broad agent compatibility, or a generally available paid gateway.
 
 Proved so far:
 
@@ -35,14 +35,20 @@ Proved so far:
   disconnect still stops it;
 - deterministic simulator tests for pairing, storage, canonical JSON, retries,
   coverage, freshness, and malformed responses.
+- a real owner-iPhone foreground catch-up from stale state through current
+  server confirmation and a bounded existing-agent read;
+- live anonymous grant issuance with a credential-free Pair Link, denied reads
+  before approval, agent self-revocation, and denied reads afterward;
+- a machine-readable setup protocol that a capable HTTPS agent can follow
+  without asking the person for a server URL, password, or API token.
 
 Still under validation:
 
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
 - onboarding and retention with people outside the owner setup;
-- deployment of the disabled public-onboarding boundary, production gateway
-  operations, and App Store review.
+- an unaided external person's install -> Pair Link -> current answer flow;
+- Apple review and public App Store availability.
 
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;
@@ -57,7 +63,9 @@ Use FitKiku (https://kikuai.dev/fitkiku/) to connect my Apple Health Steps and S
 ```
 
 FitKiku currently works only through compatible FitKiku connections. It does
-not yet support every AI agent or runtime.
+not yet support every AI agent or runtime. Capable agents can follow the exact
+bounded protocol at <https://kikuai.dev/fitkiku.md>; agents that cannot make
+HTTPS requests and securely store one bearer must fail honestly.
 
 ## Data boundary
 
@@ -106,15 +114,15 @@ The latest observer-lifecycle correction has passed build-for-testing and a
 signed owner-device foreground recovery. Unattended delivery remains in the
 validation list above rather than being presented as guaranteed.
 
-The client also parses a future exact
-`https://kikuai.dev/fitkiku/pair` entry point, but Universal Links are not
-enabled in Personal Team builds. Public tap-to-app onboarding therefore
-remains gated on the paid Apple capability, associated-domain file, and a
-final signed archive.
+The 1.0 connection flow uses the registered `fitkiku-health://` custom URL
+scheme. The client also parses a future exact
+`https://kikuai.dev/fitkiku/pair` entry point, but Universal Links and the
+Associated Domains entitlement remain deliberately deferred.
 
 ## Product links
 
 - Product: <https://kikuai.dev/fitkiku/>
+- Agent setup protocol: <https://kikuai.dev/fitkiku.md>
 - Privacy: <https://kikuai.dev/fitkiku/privacy/>
 - Support: <https://kikuai.dev/fitkiku/support/>
 - Development notes: <https://t.me/kiku_ai>
