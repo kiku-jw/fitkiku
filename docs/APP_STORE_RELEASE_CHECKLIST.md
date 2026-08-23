@@ -6,16 +6,16 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** App Store Connect version 1.0 (1) has an Apple-confirmed
-  build and otherwise complete release metadata. **Add for Review** is enabled,
-  but the reviewer phone and email fields were empty on the latest readback and
-  must be saved before the version is added to a review submission.
+- **Current status:** Version 1.0 (3) was uploaded, processed, selected, and
+  submitted with the requested physical-device recording and complete reviewer
+  information. The last verified App Store Connect state was **Waiting for
+  Review**. This is submission evidence, not Apple approval.
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
-- **Current processed App Store build:** 1.0 (1)
-- **Current source/owner-device build:** 1.0 (2)
+- **Submitted version/build:** 1.0 (3)
+- **Current public source build:** 1.0 (3)
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
-- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-15
+- **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-23
 
 ## Hard release gates
 
@@ -26,7 +26,7 @@
       as a non-medical Health & Fitness utility. Apple acceptance under that
       identity remains unproven until review.
 - [x] App Store Connect app record exists and its Bundle ID matches the
-      Apple-confirmed 1.0 (1) build.
+      Apple-confirmed 1.0 (3) build.
 - [x] The allowlisted production HTTPS backend supports the anonymous reviewer
       boundary.
 - [x] App Review can create a fresh anonymous grant through the same-origin
@@ -35,8 +35,9 @@
       retention, recovery-copy, infrastructure, and AI-provider boundaries.
 - [ ] Physical-iPhone reliability and accessibility passes meet their separate
       protocols; UI polish does not substitute for them.
-- [x] The final archive is uploaded and processed without unresolved warnings.
-- [ ] Owner explicitly approves submission.
+- [x] Build 3 was uploaded, processed, selected, and submitted without an
+      unresolved upload warning.
+- [x] Owner explicitly approved submission.
 
 Associated Domains and an Apple App Site Association file are not 1.0 release
 gates. The current Pair Link contract intentionally uses the registered
@@ -245,14 +246,14 @@ release candidate.
 - [x] Final English source copy is reviewed across the synthetic release states;
       Russian/Ukrainian are optional later releases and must not be machine-
       published without review.
-- [x] The local candidate archive reports marketing version 1.0 and build 1.
-- [x] The final distribution archive used the still-valid, monotonically
-      increasing build number 1 at upload time.
+- [x] The current public candidate reports marketing version 1.0 and build 3.
+- [x] The submitted distribution archive used monotonically increasing build
+      number 3.
 - [x] The exact archive declares `ITSAppUsesNonExemptEncryption = NO`; FitKiku
       uses only Apple-provided `URLSession` HTTPS and CryptoKit HMAC.
-- [x] App Store Connect processed the final archive and reports binary state
-      **Confirmed**, version 1.0 (1), iPhone device family, iOS 17 minimum, and
-      non-exempt encryption **No**.
+- [x] App Store Connect processed version 1.0 (3), retained the iPhone device
+      family, iOS 17 minimum, and non-exempt encryption **No**, and accepted it
+      into the review queue.
 - [x] The app registers the `fitkiku-health://` Pair Link scheme used by the
       current 1.0 connection contract.
 - [x] Settings exposes destructive, confirmed account deletion only after
@@ -283,8 +284,9 @@ release candidate.
 
 ## Latest local release receipt
 
-- [x] On 2026-08-15, the exact release source passed 60/60 iPhone 17 / iOS 26.5
-      Simulator tests and a Release analysis pass.
+- [x] On 2026-08-23, the current source passed 68/68 iPhone 17 / iOS 26.5
+      Simulator tests with normal Simulator signing, plus Release analysis and
+      an unsigned generic-device archive.
 - [x] A fresh 1.0 (1) archive exported as an App Store Connect IPA signed by
       Apple Distribution. Its profile has no device list, disables
       `get-task-allow`, carries HealthKit and background-delivery entitlements,
@@ -306,12 +308,12 @@ release candidate.
       processed build, published Health and Device ID privacy labels, free
       price, 4+ age rating, and non-medical-device declaration.
 - [x] Untested Apple Silicon Mac and Vision Pro availability are disabled.
-      Version 1.0 is public and free in 148 territories; all 27 EU storefronts
-      are unavailable while the DSA trader declaration remains unresolved.
-- [ ] App Review notes are saved, release is manual after approval, the current
-      screenshot order is verified, and **Add for Review** is enabled. The
-      reviewer phone and email inputs are empty and remain a submission blocker
-      until they are saved and read back.
+      Version 1.0 is configured as free in 148 non-EU storefronts but is not
+      publicly available; all 27 EU storefronts remain unavailable while the
+      DSA trader declaration remains unresolved.
+- [x] Review Notes, reviewer contact information, the physical-device recording,
+      and the final five-card screenshot order were saved and resubmitted.
+      Release remains manual after approval.
 - [x] On 2026-08-16, the exact release source was installed on the owner iPhone
       without erasing the existing pairing. Install-only produced no receipt;
       one explicit foreground launch recovered three missing local dates,
@@ -325,24 +327,23 @@ release candidate.
       delivery entitlement. It was
       installed over the preserved pairing; install-only produced no receipt,
       one explicit foreground activation restored a current bridge, and a
-      separate bounded agent read exited 0. The fixed unattended window is
-      still open, so this is not a background-reliability pass.
-- [ ] Build 2 has not been App Store-distribution archived, exported, uploaded,
-      processed, selected, or submitted. Processed build 1 must not be submitted
-      as though it contains the build-2 hardening.
+      separate bounded agent read exited 0. Its fixed unattended window was
+      later closed without enough elapsed evidence, so it is not a background-
+      reliability pass.
+- [x] Build 3, which contains the Pair Link timezone fix, replaced the older
+      builds in the submitted version.
 - [x] A cold agent test discovered the gateway and required paths from the live
       Markdown alone, then passed anonymous issuance, credential-free Pair Link,
       pending-read denial, revocation, and revoked-read denial.
-- [ ] The previous binary's unattended delivery remains `NO-GO` after the stale
-      three-day interval. Build 2 is `UNKNOWN` inside its new fixed window.
-      Physical VoiceOver, offline, reboot, delayed-Watch, force-quit, and fresh
-      external-participant flows remain unproved.
+- [ ] Unattended regularity remains `INCONCLUSIVE` and `NO-GO` for public
+      claims. Physical VoiceOver, offline, reboot, delayed-Watch, force-quit,
+      and fresh external-participant flows remain unproved.
 
-Local export integrity, the live reviewer path, App Store Connect record, and
-Apple build processing pass. The version has deliberately not been added to a
-review submission or submitted. Physical foreground transfer passes, but
-unattended delivery and physical VoiceOver remain incomplete. Apple acceptance
-under the individual seller and fresh external-user usability remain unknown.
+Local export integrity, the live reviewer path, App Store Connect record,
+Apple build processing, reviewer-information delivery, and submission pass.
+Physical foreground transfer passes, but unattended delivery and physical
+VoiceOver remain incomplete. Apple acceptance under the individual seller and
+fresh external-user usability remain unknown.
 
 ## Local verification commands
 
@@ -350,7 +351,8 @@ under the individual seller and fresh external-user usability remain unknown.
 xcodebuild \
   -project ios/FitKiku/FitKiku.xcodeproj \
   -scheme FitKiku \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
+  -parallel-testing-enabled NO \
   test
 
 xcodebuild \

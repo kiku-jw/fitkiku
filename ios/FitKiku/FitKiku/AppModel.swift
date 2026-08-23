@@ -254,7 +254,7 @@ final class AppModel: ObservableObject {
                 pairingToken: consent.pairingToken,
                 installationID: installationID,
                 timezone: consent.preview.requiresTimezone == true
-                    ? TimeZone.current.identifier
+                    ? AppDate.timezoneIdentifier
                     : nil
             )
             try await completePairing(
