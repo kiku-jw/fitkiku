@@ -338,6 +338,10 @@ release candidate.
 - [ ] Unattended regularity remains `INCONCLUSIVE` and `NO-GO` for public
       claims. Physical VoiceOver, offline, reboot, delayed-Watch, force-quit,
       and fresh external-participant flows remain unproved.
+- [ ] Release 1.0 uses the canonical `Europe/Kyiv` daily boundary. Do not claim
+      locale-dynamic grouping or recruit a broader-timezone validation cohort
+      until date attribution, payloads, corrections, status, and DST behavior
+      pass one explicit cross-zone contract.
 
 Local export integrity, the live reviewer path, App Store Connect record,
 Apple build processing, reviewer-information delivery, and submission pass.
