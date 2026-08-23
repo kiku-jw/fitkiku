@@ -1,5 +1,7 @@
 # FitKiku
 
+[![iOS CI](https://github.com/kiku-jw/fitkiku/actions/workflows/ios.yml/badge.svg)](https://github.com/kiku-jw/fitkiku/actions/workflows/ios.yml)
+
 <img src="ios/FitKiku/FitKiku/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="FitKiku app icon">
 
 FitKiku is an Apple Health connector for personal AI agents. Its native iPhone
@@ -14,10 +16,9 @@ deletion without modifying Apple Health.
 
 ## Current status
 
-FitKiku 1.0 (1) is processed in App Store Connect but has not been submitted to
-App Review. The public source has advanced to 1.0 (2); build 2 is installed on
-the owner iPhone for a fixed background-delivery observation window but is not
-uploaded to App Store Connect. The repository does **not** imply App Store
+FitKiku 1.0 (3) was uploaded, processed, selected, and submitted to App Review.
+The last verified App Store Connect state was **Waiting for Review**; Apple
+acceptance and public availability remain unconfirmed. The repository does **not** imply App Store
 availability, guaranteed background delivery, medical fitness, broad agent
 compatibility, or a generally available paid gateway.
 
@@ -41,7 +42,7 @@ Proved so far:
 - background work requests HealthKit's earliest supported opportunity but is
   bounded to two local days, one upload attempt per day, and an exactly-once
   completion deadline;
-- 67 deterministic simulator tests for pairing, storage, canonical JSON,
+- 68 deterministic simulator tests for pairing, storage, canonical JSON,
   retries, coverage, freshness, cold launch, and malformed responses;
 - a real owner-iPhone foreground catch-up from stale state through current
   server confirmation and a bounded existing-agent read;
@@ -50,13 +51,13 @@ Proved so far:
 - a machine-readable setup protocol that a capable HTTPS agent can follow
   without asking the person for a server URL, password, or API token.
 
-Still under validation for exact build-2 source `68ffc5f`:
+Still unproved for a public reliability claim:
 
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
 - onboarding and retention with people outside the owner setup;
 - an unaided external person's install -> Pair Link -> current answer flow;
-- Apple review and public App Store availability.
+- Apple acceptance and public App Store availability.
 
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;
@@ -113,16 +114,20 @@ FITKIKU_DERIVED_DATA="$(mktemp -d /tmp/fitkiku-public-tests.XXXXXX)"
 xcodebuild \
   -project ios/FitKiku/FitKiku.xcodeproj \
   -scheme FitKiku \
-  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' \
   -derivedDataPath "$FITKIKU_DERIVED_DATA" \
+  -parallel-testing-enabled NO \
   test
 ```
 
-The background-hardening source has passed 50/50 focused and 67/67 full
-simulator tests, a signed owner-device Release build, a preserved-pairing
-install, and one explicit foreground activation. Its fixed 2026-08-16 through
-2026-08-22 server-first window remains open; unattended delivery stays in the
-validation list above rather than being presented as guaranteed.
+Keep normal Simulator ad-hoc signing enabled. Disabling code signing removes
+the Keychain entitlement and invalidates protected-store tests.
+
+The submitted build-3 source has passed 68/68 full Simulator tests, Release
+analysis, archive inspection, and the physical reviewer flow. The earlier
+fixed server-first window was closed without enough elapsed evidence;
+unattended regularity remains inconclusive and stays in the validation list
+above rather than being presented as guaranteed.
 
 The 1.0 connection flow uses the registered `fitkiku-health://` custom URL
 scheme. The client also parses a future exact

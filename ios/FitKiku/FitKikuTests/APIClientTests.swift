@@ -739,6 +739,18 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
+    func testPublicGuestPairingUsesTheSnapshotTimezone() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+
+        let pairedTimezone = await harness.transport.pairedTimezone()
+        XCTAssertEqual(pairedTimezone, AppDate.timezoneIdentifier)
+    }
+
+    @MainActor
     func testDisconnectKeepsCredentialUntilServerRevocationSucceeds() async throws {
         let harness = try makeModelHarness()
         defer { harness.cleanup() }
