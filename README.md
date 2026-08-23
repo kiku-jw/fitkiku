@@ -55,6 +55,8 @@ Still unproved for a public reliability claim:
 
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
+- locale-dynamic daily grouping; release 1.0 uses the `Europe/Kyiv` day
+  boundary for all summaries;
 - onboarding and retention with people outside the owner setup;
 - an unaided external person's install -> Pair Link -> current answer flow;
 - Apple acceptance and public App Store availability.
@@ -90,6 +92,10 @@ stay on the iPhone.
 
 Missing data is never converted to zero. FitKiku is not medical diagnosis,
 treatment, clearance, or emergency care.
+
+Release 1.0 assigns each daily summary to the `Europe/Kyiv` calendar. Users
+whose ordinary day boundary differs should treat multi-timezone grouping as an
+unproved later capability, not as part of this release.
 
 ## Build the iOS app
 
