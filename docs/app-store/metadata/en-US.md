@@ -1,15 +1,15 @@
 # FitKiku App Store Metadata — English (U.S.)
 
-> Document class: release input. This is a paste-ready draft for version 1.0,
-> not proof of an App Store Connect record, uploaded build, or Apple approval.
-> Reconcile every claim against the exact reviewer-accessible backend and final
-> binary before submission. Never commit reviewer credentials or a live Pair
-> Link here.
+> Document class: release input. This is the durable source for version 1.0
+> metadata. Build `1.0 (3)` was resubmitted after the 2026-08-25 metadata-only
+> Guideline 5.2.5 correction; the last verified App Store Connect state is
+> **Waiting for Review**. This is not Apple approval or public availability.
+> Never commit reviewer credentials or a live Pair Link here.
 
 ## App information
 
 - **Name (7/30):** `FitKiku`
-- **Subtitle (24/30):** `Apple Health for your AI`
+- **Subtitle (27/30):** `Steps and sleep for your AI`
 - **Primary category:** Health & Fitness
 - **Secondary category:** None for 1.0
 - **Bundle ID:** `com.kikuai.fitkiku.health`
@@ -27,7 +27,7 @@ Connect account and its current questionnaires.
 
 ## Keywords
 
-`apple health,ai agent,steps,sleep,healthkit,privacy,fitness,wellness`
+`health data,ai agent,privacy,fitness,wellness,activity,tracking,sync,accountability`
 
 This is below the 100-character limit. Recheck punctuation and duplication in
 App Store Connect; do not repeat `FitKiku` or words already carrying stronger

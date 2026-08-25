@@ -17,10 +17,12 @@ deletion without modifying Apple Health.
 ## Current status
 
 FitKiku 1.0 (3) was uploaded, processed, selected, and submitted to App Review.
-The last verified App Store Connect state was **Waiting for Review**; Apple
-acceptance and public availability remain unconfirmed. The repository does **not** imply App Store
-availability, guaranteed background delivery, medical fitness, broad agent
-compatibility, or a generally available paid gateway.
+After Apple's 2026-08-25 Guideline 5.2.5 metadata rejection, the subtitle and
+keywords were corrected and the unchanged build was resubmitted. The last
+verified App Store Connect state was **Waiting for Review**; Apple acceptance
+and public availability remain unconfirmed. The repository does **not** imply
+App Store availability, guaranteed background delivery, medical fitness, broad
+agent compatibility, or a generally available paid gateway.
 
 Proved so far:
 
