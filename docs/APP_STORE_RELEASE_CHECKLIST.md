@@ -6,10 +6,12 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** Version 1.0 (3) was uploaded, processed, selected, and
-  submitted with the requested physical-device recording and complete reviewer
-  information. The last verified App Store Connect state was **Waiting for
-  Review**. This is submission evidence, not Apple approval.
+- **Current status:** On 2026-08-25 Apple rejected version 1.0 (3) under
+  **Guideline 5.2.5 — Legal — Intellectual Property** because the subtitle used
+  an Apple service name. The subtitle and keywords were corrected without
+  changing build 3, the screenshots, or the reviewer recording. App Store
+  Connect accepted the reply and resubmission and read the version back as
+  **Waiting for Review**. This is submission evidence, not Apple approval.
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Submitted version/build:** 1.0 (3)
@@ -47,21 +49,22 @@ are implemented and tested in the signed binary.
 
 ## Product-page draft
 
-The checked-in source remains the editable release input. On 2026-08-16, the
-English metadata, build selection, and synthetic screenshots were read back
-from App Store Connect. Promotional text remains intentionally empty.
+The checked-in source remains the editable release input. The subtitle and
+keywords below were saved and read back from App Store Connect on 2026-08-25;
+the remaining product-page fields retain their previously verified values.
+Promotional text remains intentionally empty.
 
 The paste-ready English metadata and review-note template live in
 [`docs/app-store/metadata/en-US.md`](app-store/metadata/en-US.md).
 
 - **Name:** FitKiku
-- **Subtitle:** Apple Health for your AI
+- **Subtitle:** Steps and sleep for your AI
 - **Primary category candidate:** Health & Fitness
 - **Promotional text:** optional; omit for 1.0 unless it communicates a real,
   currently available capability.
 - **Short promise:** Connect read-only Steps and Sleep to an agent you approve,
   with freshness, missing-data status, and revocation visible on iPhone.
-- **Keywords draft:** apple health,ai agent,steps,sleep,healthkit,privacy
+- **Keywords:** health data,ai agent,privacy,fitness,wellness,activity,tracking,sync,accountability
 
 ### Description draft
 
