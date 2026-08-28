@@ -6,15 +6,15 @@
 > metadata changes. Completing local items does not mean Apple approved or the
 > app is publicly available.
 
-- **Current status:** On 2026-08-25 Apple rejected version 1.0 (3) under
-  **Guideline 5.2.5 — Legal — Intellectual Property** because the subtitle used
-  an Apple service name. The subtitle and keywords were corrected without
-  changing build 3, the screenshots, or the reviewer recording. App Store
-  Connect accepted the reply and resubmission and read the version back as
-  **Waiting for Review**. This is submission evidence, not Apple approval.
+- **Current status:** FitKiku 1.0 is publicly available free in the configured
+  non-EU App Store storefronts. Apple's public catalog reports version 1.0,
+  App ID `6801516904`, and a 2026-08-27 release date. EU-27 storefronts remain
+  disabled. This proves Apple distribution, not unattended reliability,
+  external activation, retention, demand, or payment.
+- **App Store:** `https://apps.apple.com/app/id6801516904`
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
-- **Submitted version/build:** 1.0 (3)
+- **Released version/build:** 1.0 (3)
 - **Current public source build:** 1.0 (3)
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
 - **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-23
@@ -25,8 +25,8 @@
 - [x] Permanent App ID `com.kikuai.fitkiku.health` is registered with HealthKit.
 - [x] The submission-identity decision is recorded: attempt the first review
       under the enrolled individual seller while describing FitKiku accurately
-      as a non-medical Health & Fitness utility. Apple acceptance under that
-      identity remains unproven until review.
+      as a non-medical Health & Fitness utility. Apple accepted and released
+      version 1.0 under that identity.
 - [x] App Store Connect app record exists and its Bundle ID matches the
       Apple-confirmed 1.0 (3) build.
 - [x] The allowlisted production HTTPS backend supports the anonymous reviewer
@@ -40,6 +40,8 @@
 - [x] Build 3 was uploaded, processed, selected, and submitted without an
       unresolved upload warning.
 - [x] Owner explicitly approved submission.
+- [x] Apple's public catalog exposes FitKiku 1.0 in configured non-EU
+      storefronts through `https://apps.apple.com/app/id6801516904`.
 
 Associated Domains and an Apple App Site Association file are not 1.0 release
 gates. The current Pair Link contract intentionally uses the registered
@@ -58,6 +60,7 @@ The paste-ready English metadata and review-note template live in
 [`docs/app-store/metadata/en-US.md`](app-store/metadata/en-US.md).
 
 - **Name:** FitKiku
+- **App Store:** https://apps.apple.com/app/id6801516904
 - **Subtitle:** Steps and sleep for your AI
 - **Primary category candidate:** Health & Fitness
 - **Promotional text:** optional; omit for 1.0 unless it communicates a real,
@@ -134,10 +137,10 @@ Do not publish placeholder or empty pages. Apple requires functional URLs in a
 final submission.
 
 Both required URLs returned public HTTPS `200` responses with their canonical
-content on 2026-08-13. They describe current private testing accurately and do
-not claim App Store availability. The privacy page intentionally keeps public
-enrollment closed until the production backup-retention schedule and
-destination/provider list are finalized.
+content on 2026-08-13. At that checkpoint they described the then-current
+private test accurately and did not claim App Store availability. The pages
+were updated after release while preserving the separate hosted-service and
+privacy boundaries.
 
 Public setup creates an anonymous FitKiku guest with no email, password, or
 recovery identity. The paired iOS Settings screen exposes **Delete FitKiku
@@ -301,19 +304,19 @@ release candidate.
       worksheet: linked Health and Device ID for App Functionality, no tracking.
 - [x] The public reviewer lifecycle and anonymous deletion path have passed one
       external synthetic issue-to-delete check with old-credential denial.
-- [x] KikuAI site commit `1b3b80c` is live. Public product, Privacy, Support,
-      and agent-readable pages describe the limited reviewer boundary without
-      claiming App Store availability and expose the executable bounded agent
-      protocol.
+- [x] KikuAI site commit `1b3b80c` initially published the limited reviewer
+      boundary and executable bounded agent protocol without prematurely
+      claiming App Store availability. Later release-state updates are tracked
+      independently on the public site.
 - [x] The source intentionally contains no Associated Domains entitlement;
       the 1.0 Pair Link path uses its registered custom URL scheme instead.
 - [x] App Store Connect readback on 2026-08-16 confirmed the app record,
       processed build, published Health and Device ID privacy labels, free
       price, 4+ age rating, and non-medical-device declaration.
 - [x] Untested Apple Silicon Mac and Vision Pro availability are disabled.
-      Version 1.0 is configured as free in 148 non-EU storefronts but is not
-      publicly available; all 27 EU storefronts remain unavailable while the
-      DSA trader declaration remains unresolved.
+      Version 1.0 was configured as free in 148 non-EU storefronts; all 27 EU
+      storefronts remain unavailable while the DSA trader declaration remains
+      unresolved.
 - [x] Review Notes, reviewer contact information, the physical-device recording,
       and the final five-card screenshot order were saved and resubmitted.
       Release remains manual after approval.
@@ -338,6 +341,10 @@ release candidate.
 - [x] A cold agent test discovered the gateway and required paths from the live
       Markdown alone, then passed anonymous issuance, credential-free Pair Link,
       pending-read denial, revocation, and revoked-read denial.
+- [x] On 2026-08-28, Apple's public catalog returned FitKiku 1.0 for App ID
+      `6801516904`, with a 2026-08-27 release date and zero price. Direct App
+      Store URLs return the live product page in supported non-EU storefronts;
+      sampled EU storefronts remain unavailable as configured.
 - [ ] Unattended regularity remains `INCONCLUSIVE` and `NO-GO` for public
       claims. Physical VoiceOver, offline, reboot, delayed-Watch, force-quit,
       and fresh external-participant flows remain unproved.
@@ -347,10 +354,10 @@ release candidate.
       pass one explicit cross-zone contract.
 
 Local export integrity, the live reviewer path, App Store Connect record,
-Apple build processing, reviewer-information delivery, and submission pass.
-Physical foreground transfer passes, but unattended delivery and physical
-VoiceOver remain incomplete. Apple acceptance under the individual seller and
-fresh external-user usability remain unknown.
+Apple build processing, reviewer-information delivery, review, and public
+non-EU distribution pass. Physical foreground transfer passes, but unattended
+delivery, physical VoiceOver, and fresh external-user usability remain
+unknown.
 
 ## Local verification commands
 

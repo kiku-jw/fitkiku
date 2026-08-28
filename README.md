@@ -4,25 +4,26 @@
 
 <img src="ios/FitKiku/FitKiku/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="160" alt="FitKiku app icon">
 
+[Download FitKiku on the App Store](https://apps.apple.com/app/id6801516904)
+
 FitKiku is an Apple Health connector for personal AI agents. Its native iPhone
 app gives an agent you approve recent, read-only Apple Health context after
 explicit user approval.
 
 The current product reads only daily Steps and Sleep. It shows the destination
 before connection, keeps unknown or partial coverage visible, reports delivery
-freshness, and lets the user revoke future access. The release-candidate source
+freshness, and lets the user revoke future access. The version 1.0 source
 also supports isolated anonymous guest pairing and authenticated in-app account
 deletion without modifying Apple Health.
 
 ## Current status
 
-FitKiku 1.0 (3) was uploaded, processed, selected, and submitted to App Review.
-After Apple's 2026-08-25 Guideline 5.2.5 metadata rejection, the subtitle and
-keywords were corrected and the unchanged build was resubmitted. The last
-verified App Store Connect state was **Waiting for Review**; Apple acceptance
-and public availability remain unconfirmed. The repository does **not** imply
-App Store availability, guaranteed background delivery, medical fitness, broad
-agent compatibility, or a generally available paid gateway.
+FitKiku 1.0 is available free on the App Store in the configured non-EU
+storefronts. Apple's public catalog reports version 1.0 and a 2026-08-27 release
+date for App ID `6801516904`. EU-27 storefronts remain intentionally disabled
+while their separate legal and tax boundary is unresolved. Publication proves
+distribution only; it does not establish reliable background delivery,
+external retention, broad agent compatibility, demand, or payment.
 
 Proved so far:
 
@@ -61,7 +62,7 @@ Still unproved for a public reliability claim:
   boundary for all summaries;
 - onboarding and retention with people outside the owner setup;
 - an unaided external person's install -> Pair Link -> current answer flow;
-- Apple acceptance and public App Store availability.
+- demand or payment for an optional hosted gateway.
 
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;

@@ -1,14 +1,15 @@
 # FitKiku App Store Metadata — English (U.S.)
 
 > Document class: release input. This is the durable source for version 1.0
-> metadata. Build `1.0 (3)` was resubmitted after the 2026-08-25 metadata-only
-> Guideline 5.2.5 correction; the last verified App Store Connect state is
-> **Waiting for Review**. This is not Apple approval or public availability.
+> metadata. Build `1.0 (3)` passed review and is publicly available free in the
+> configured non-EU storefronts. Apple's public catalog reports a 2026-08-27
+> release date for App ID `6801516904`. EU-27 storefronts remain disabled.
 > Never commit reviewer credentials or a live Pair Link here.
 
 ## App information
 
 - **Name (7/30):** `FitKiku`
+- **App Store:** `https://apps.apple.com/app/id6801516904`
 - **Subtitle (27/30):** `Steps and sleep for your AI`
 - **Primary category:** Health & Fitness
 - **Secondary category:** None for 1.0
