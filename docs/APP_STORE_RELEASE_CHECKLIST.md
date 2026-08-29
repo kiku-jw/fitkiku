@@ -160,14 +160,20 @@ immediately before submission. They are deliberately conservative.
 | Device ID | Yes | No | App Functionality | A stable app installation identifier scopes credentials, idempotency, and revocation. |
 
 - [x] No advertising or tracking SDK is in the target.
-- [x] `PrivacyInfo.xcprivacy` declares no tracking and conservatively declares
-      Health and the stable installation Device ID for App Functionality.
+- [x] Current `PrivacyInfo.xcprivacy` declares no tracking, conservatively
+      declares Health and the stable installation Device ID for App
+      Functionality, and declares app-only `UserDefaults` use with Apple's
+      `CA92.1` reason.
 - [x] Retention, deletion, AI-provider sharing, and source-detail handling in
       the public privacy policy match the deployed destination.
 - [x] Xcode's aggregate privacy report was generated from the exact 2026-08-15
       archive and visually reviewed. It contains only Health and Device ID,
       both linked for App Functionality with tracking `NO`; it contains no
-      required-reason API section.
+      required-reason API section. This is historical build `1.0 (3)` evidence,
+      not the current source manifest.
+- [ ] Before the next submission, generate a fresh aggregate privacy report
+      from the exact archive and confirm that the required-reason section
+      contains app-only `UserDefaults` with `CA92.1` and no unexplained API.
 
 HealthKit-derived data must never be used for advertising, marketing, or
 use-based data mining. The app must disclose the specific Health data it reads

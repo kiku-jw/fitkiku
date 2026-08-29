@@ -107,6 +107,8 @@ personal AI agents.
 - Adds native Share and Rate actions in Settings.
 - May show Apple's native rating prompt only after two distinct current agent
   reads, at most once per app version.
+- Declares the existing app-only `UserDefaults` use with Apple's `CA92.1`
+  required-reason API code in the bundled privacy manifest.
 
 ## App Privacy candidate
 
