@@ -167,6 +167,14 @@ struct DeviceDeliveryStatus: Equatable, Sendable {
     let missingLocalDates: [String]
     let dataFreshness: DeviceDataFreshness
     let canDeleteAccount: Bool
+
+    var hasCurrentAgentRead: Bool {
+        guard dataFreshness == .current,
+              let lastServerReceivedAt,
+              let lastAgentFetchedAt
+        else { return false }
+        return lastAgentFetchedAt >= lastServerReceivedAt
+    }
 }
 
 enum PairingPayloadError: LocalizedError, Equatable {

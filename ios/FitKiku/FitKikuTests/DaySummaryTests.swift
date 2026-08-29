@@ -6,12 +6,15 @@ import XCTest
 final class DaySummaryTests: XCTestCase {
     func testPublicProductLinksUseHTTPSAndExpectedHosts() throws {
         XCTAssertEqual(Set(FitKikuLinks.all.compactMap(\.scheme)), ["https"])
+        XCTAssertEqual(FitKikuLinks.appStore.host, "apps.apple.com")
+        XCTAssertEqual(FitKikuLinks.review.host, "apps.apple.com")
+        XCTAssertEqual(FitKikuLinks.review.query, "action=write-review")
         XCTAssertEqual(FitKikuLinks.website.host, "kikuai.dev")
         XCTAssertEqual(FitKikuLinks.source.host, "github.com")
         XCTAssertEqual(FitKikuLinks.telegram.host, "t.me")
         XCTAssertEqual(FitKikuLinks.privacy.host, "kikuai.dev")
         XCTAssertEqual(FitKikuLinks.support.host, "kikuai.dev")
-        XCTAssertEqual(FitKikuLinks.all.count, 5)
+        XCTAssertEqual(FitKikuLinks.all.count, 7)
     }
 
     func testNormalizationDeduplicatesAndMergesOverlappingSleepForDisplay() throws {

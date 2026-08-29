@@ -724,7 +724,9 @@ extension AppModel {
         lastSyncAt = currentDate
         deliveryStatus = DeviceDeliveryStatus(
             lastServerReceivedAt: currentDate,
-            lastAgentFetchedAt: previousDate,
+            lastAgentFetchedAt: freshness == .current && !partial
+                ? currentDate.addingTimeInterval(60)
+                : previousDate,
             latestLocalDate: "2026-04-08",
             lastDeviceGeneratedAt: currentDate,
             latestCoverage: HealthCoverage(

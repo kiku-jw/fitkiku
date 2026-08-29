@@ -34,6 +34,16 @@ This is below the 100-character limit. Recheck punctuation and duplication in
 App Store Connect; do not repeat `FitKiku` or words already carrying stronger
 weight in the name and subtitle unless search evidence justifies it.
 
+### Next-version ASO candidate — not applied in App Store Connect
+
+Use this candidate only after rechecking the live metadata and byte limits:
+
+`agent,assistant,activity,wellness,sync,export,automation,context,privacy,accountability,tracking`
+
+It avoids repeating the name and the strongest subtitle words while covering
+the agent, portability, automation, and trust jobs. Do not add competitor names
+or Apple trademarks as keywords.
+
 ## Description
 
 FitKiku connects recent Apple Health context to a personal AI agent you
@@ -63,10 +73,21 @@ foreground catch-up when recent delivery needs attention.
 FitKiku is a fitness-data connection and accountability tool. It is not
 medical diagnosis, treatment, clearance, or emergency care.
 
+### Next-version opening copy candidate — not applied in App Store Connect
+
+Stop retyping your Steps and Sleep into your AI agent.
+
+FitKiku gives a compatible personal AI agent recent read-only context after
+you approve the destination on your iPhone.
+
 ## Promotional text
 
 Leave empty for 1.0. Do not advertise a hosted plan, broad agent compatibility,
 or App Store availability before each claim is true.
+
+Next-version candidate, subject to a final truth and length check:
+
+`Stop retyping Steps and Sleep. Connect a compatible personal AI agent with visible freshness and revocable read-only access.`
 
 ## Version 1.0 release notes
 
@@ -78,6 +99,14 @@ personal AI agents.
 - See freshness, missing-data, and delivery status.
 - Disconnect and revoke future access at any time.
 - Delete anonymous synced FitKiku data without changing Apple Health.
+
+## Next-version release-note candidate
+
+- Distinguishes current server delivery from the agent reading that update.
+- Adds one copyable or shareable prompt when the agent still needs to fetch.
+- Adds native Share and Rate actions in Settings.
+- May show Apple's native rating prompt only after two distinct current agent
+  reads, at most once per app version.
 
 ## App Privacy candidate
 
@@ -97,6 +126,12 @@ Public setup creates an anonymous FitKiku guest with no email, password, or
 recovery identity. Its connection grants are revocable, and the paired iOS
 Settings screen can delete that guest and its synced FitKiku server data.
 Deletion does not modify Apple Health.
+
+The next-version review-prompt policy stores only the last counted agent-fetch
+timestamp, a bounded success count, and the prompted app version in on-device
+`UserDefaults`. It stores no Health measurement and transmits no review-
+eligibility state. This local-only state does not add a collected-data category;
+reassess immediately if analytics or remote event collection is introduced.
 
 ## App Review notes template
 
@@ -148,19 +183,17 @@ service and its review position are finalized.
 
 ## Export compliance worksheet
 
-The app uses Apple-provided `URLSession` HTTPS/TLS and CryptoKit HMAC. The exact
-1.0 (1) archive declares `ITSAppUsesNonExemptEncryption = NO`; Apple documents
-that apps limited to encryption within its operating system do not require App
-Store Connect encryption documentation. Confirm the processed build reports
-the same answer before submission.
+The app uses Apple-provided `URLSession` HTTPS/TLS and CryptoKit HMAC. Exact
+build-3 source and its uploaded archive declare
+`ITSAppUsesNonExemptEncryption = NO`; Apple documents that apps limited to
+encryption within its operating system can follow the no-documentation path.
+Reconfirm that answer for every later processed build.
 
-## Submission blockers that metadata cannot close
+## External gates that metadata cannot close
 
-- App Store Connect app record for the registered production Bundle ID
-- Submission-identity decision for Apple's sensitive-data legal-entity guidance
-- Frozen physical-iPhone reliability and accessibility evidence
-- App Store Connect upload, processing, and validation of the signed archive
-- Owner approval to submit
+- Physical VoiceOver and unattended-background reliability evidence, which
+  remain separate from the completed review recording and public release.
+- External activation, repeated use, support burden, demand, and payment.
 
 ## Apple primary sources
 

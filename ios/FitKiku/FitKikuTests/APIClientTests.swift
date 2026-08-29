@@ -1188,10 +1188,118 @@ final class APIClientTests: XCTestCase {
         XCTAssertTrue(FitKikuSetupPrompt.message.contains("Apple Health export"))
     }
 
+    func testAgentReadIsCurrentOnlyAfterAgentFetchesLatestServerReceipt() {
+        let serverReceipt = Date(timeIntervalSince1970: 1_775_000_100)
+
+        XCTAssertFalse(
+            deliveryStatus(
+                serverReceivedAt: serverReceipt,
+                agentFetchedAt: nil,
+                freshness: .current
+            ).hasCurrentAgentRead
+        )
+        XCTAssertFalse(
+            deliveryStatus(
+                serverReceivedAt: serverReceipt,
+                agentFetchedAt: serverReceipt.addingTimeInterval(-1),
+                freshness: .current
+            ).hasCurrentAgentRead
+        )
+        XCTAssertTrue(
+            deliveryStatus(
+                serverReceivedAt: serverReceipt,
+                agentFetchedAt: serverReceipt,
+                freshness: .current
+            ).hasCurrentAgentRead
+        )
+        XCTAssertFalse(
+            deliveryStatus(
+                serverReceivedAt: serverReceipt,
+                agentFetchedAt: serverReceipt.addingTimeInterval(1),
+                freshness: .stale
+            ).hasCurrentAgentRead
+        )
+    }
+
+    func testAgentCheckPromptRequiresFreshnessAndProtectsCredentials() {
+        XCTAssertEqual(FitKikuAgentCheckPrompt.buttonTitle, "Copy ask-agent prompt")
+        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("data_freshness=current"))
+        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("latest_local_date"))
+        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("at most seven days"))
+        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("Never show"))
+        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("credentials"))
+    }
+
+    func testReviewPromptWaitsForTwoDistinctCurrentAgentReadsAndOneVersion() throws {
+        let suiteName = "FitKikuReviewPromptPolicyTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let firstReceipt = Date(timeIntervalSince1970: 1_775_000_000)
+        let firstFetch = firstReceipt.addingTimeInterval(60)
+        let first = deliveryStatus(
+            serverReceivedAt: firstReceipt,
+            agentFetchedAt: firstFetch,
+            freshness: .current
+        )
+        XCTAssertFalse(
+            FitKikuReviewPromptPolicy.shouldRequestReview(
+                for: first,
+                appVersion: "1.1",
+                defaults: defaults
+            )
+        )
+        XCTAssertFalse(
+            FitKikuReviewPromptPolicy.shouldRequestReview(
+                for: first,
+                appVersion: "1.1",
+                defaults: defaults
+            )
+        )
+
+        let secondReceipt = firstReceipt.addingTimeInterval(120)
+        let second = deliveryStatus(
+            serverReceivedAt: secondReceipt,
+            agentFetchedAt: secondReceipt.addingTimeInterval(60),
+            freshness: .current
+        )
+        XCTAssertTrue(
+            FitKikuReviewPromptPolicy.shouldRequestReview(
+                for: second,
+                appVersion: "1.1",
+                defaults: defaults
+            )
+        )
+        XCTAssertFalse(
+            FitKikuReviewPromptPolicy.shouldRequestReview(
+                for: second,
+                appVersion: "1.2",
+                defaults: defaults
+            )
+        )
+
+        let thirdReceipt = secondReceipt.addingTimeInterval(120)
+        let third = deliveryStatus(
+            serverReceivedAt: thirdReceipt,
+            agentFetchedAt: thirdReceipt.addingTimeInterval(60),
+            freshness: .current
+        )
+        XCTAssertTrue(
+            FitKikuReviewPromptPolicy.shouldRequestReview(
+                for: third,
+                appVersion: "1.2",
+                defaults: defaults
+            )
+        )
+    }
+
     func testSettingsLinksKeepProductAndSupportWithoutCreatorProfile() {
         XCTAssertEqual(
             FitKikuLinks.all,
             [
+                FitKikuLinks.appStore,
+                FitKikuLinks.review,
                 FitKikuLinks.website,
                 FitKikuLinks.source,
                 FitKikuLinks.telegram,
@@ -1224,6 +1332,8 @@ final class APIClientTests: XCTestCase {
     func testSyntheticDemoScenariosExposeOnlyTheirIntendedState() {
         let firstRun = AppModel.syntheticDemo(.firstRun)
         let consent = AppModel.syntheticDemo(.consent)
+        let current = AppModel.syntheticDemo(.current)
+        let partial = AppModel.syntheticDemo(.partial)
         let revoked = AppModel.syntheticDemo(.revoked)
 
         XCTAssertEqual(
@@ -1236,6 +1346,8 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertFalse(firstRun.isPaired)
         XCTAssertNil(firstRun.pendingAgentConsent)
+        XCTAssertEqual(current.deliveryStatus?.hasCurrentAgentRead, true)
+        XCTAssertEqual(partial.deliveryStatus?.hasCurrentAgentRead, false)
         XCTAssertEqual(consent.pendingAgentConsent?.preview.assertedAgentName, "Kiku Assistant")
         XCTAssertFalse(consent.isPaired)
         XCTAssertTrue(revoked.localCredentialCleanupPending)
@@ -1251,6 +1363,23 @@ final class APIClientTests: XCTestCase {
 
     private func agentLink(token: String) -> String {
         "fitkiku-health://pair?server=https%3A%2F%2Ffitkiku.example&token=\(token)"
+    }
+
+    private func deliveryStatus(
+        serverReceivedAt: Date?,
+        agentFetchedAt: Date?,
+        freshness: DeviceDataFreshness
+    ) -> DeviceDeliveryStatus {
+        DeviceDeliveryStatus(
+            lastServerReceivedAt: serverReceivedAt,
+            lastAgentFetchedAt: agentFetchedAt,
+            latestLocalDate: "2026-08-29",
+            lastDeviceGeneratedAt: serverReceivedAt,
+            latestCoverage: HealthCoverage(steps: .complete, sleep: .complete),
+            missingLocalDates: [],
+            dataFreshness: freshness,
+            canDeleteAccount: true
+        )
     }
 
     private func jsonObject(_ data: Data) throws -> [String: Any] {

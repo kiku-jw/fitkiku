@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: MPL-2.0
 
 import Foundation
+import StoreKit
 import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @Environment(\.requestReview) private var requestReview
     @ObservedObject var model: AppModel
     @State private var pastedPairLink = ""
     @State private var showAdvancedSetup = false
     @State private var showSettings = false
     @State private var showDeliveryDetails: Bool
     @State private var copiedSetupPrompt = false
+    @State private var copiedAgentCheckPrompt = false
     @ScaledMetric(relativeTo: .body) private var minimumControlHeight = 44
 
     init(model: AppModel) {
@@ -76,6 +79,18 @@ struct ContentView: View {
             }
             .sheet(isPresented: $showSettings) {
                 SettingsView(model: model)
+            }
+            .onChange(of: model.deliveryStatus) { _, delivery in
+                guard !model.isSyntheticDemo,
+                      FitKikuReviewPromptPolicy.shouldRequestReview(
+                          for: delivery,
+                          appVersion: Bundle.main.object(
+                              forInfoDictionaryKey: "CFBundleShortVersionString"
+                          ) as? String,
+                          defaults: .standard
+                      )
+                else { return }
+                requestReview()
             }
         }
     }
@@ -451,6 +466,41 @@ struct ContentView: View {
                     .foregroundStyle(Color.fitKikuSecondaryText)
                 }
 
+                if let delivery = model.deliveryStatus,
+                   delivery.dataFreshness == .current,
+                   !delivery.hasCurrentAgentRead
+                {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(
+                            "Your iPhone data is current on the server, but your agent has not read the latest update yet."
+                        )
+                        .font(.footnote)
+                        .foregroundStyle(Color.fitKikuSecondaryText)
+
+                        Button(action: copyAgentCheckPrompt) {
+                            actionLabel(
+                                FitKikuAgentCheckPrompt.buttonTitle,
+                                systemImage: "doc.on.doc"
+                            )
+                        }
+                        .buttonStyle(.bordered)
+
+                        ShareLink(item: FitKikuAgentCheckPrompt.message) {
+                            actionLabel("Share with your agent", systemImage: "square.and.arrow.up")
+                        }
+                        .buttonStyle(.bordered)
+
+                        if copiedAgentCheckPrompt {
+                            Label(
+                                FitKikuAgentCheckPrompt.copiedStatus,
+                                systemImage: "checkmark.circle.fill"
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(.green)
+                        }
+                    }
+                }
+
                 DisclosureGroup("Delivery details", isExpanded: $showDeliveryDetails) {
                     VStack(alignment: .leading, spacing: 10) {
                         if let delivery = model.deliveryStatus {
@@ -625,6 +675,11 @@ struct ContentView: View {
         copiedSetupPrompt = true
     }
 
+    private func copyAgentCheckPrompt() {
+        UIPasteboard.general.string = FitKikuAgentCheckPrompt.message
+        copiedAgentCheckPrompt = true
+    }
+
     private var connectionHost: String {
         URL(string: model.serverAddress)?.host ?? "Approved destination"
     }
@@ -641,7 +696,9 @@ struct ContentView: View {
         }
         switch delivery.dataFreshness {
         case .current:
-            return "Recent Steps and Sleep reached this destination and look current."
+            return delivery.hasCurrentAgentRead
+                ? "Your agent fetched FitKiku after the latest server update."
+                : "Recent Steps and Sleep reached this destination. Ask your agent to fetch the latest update."
         case .stale:
             return "Daily Steps and Sleep are connected, but some recent delivery still needs attention."
         case .unknown:
@@ -656,7 +713,7 @@ struct ContentView: View {
         }
         switch delivery.dataFreshness {
         case .current:
-            return "Current"
+            return delivery.hasCurrentAgentRead ? "Agent up to date" : "Waiting for agent"
         case .stale:
             return "Needs attention"
         case .unknown:
@@ -684,14 +741,67 @@ enum FitKikuSetupPrompt {
         + "Do not ask me for server passwords, API tokens, or a manual Apple Health export."
 }
 
+enum FitKikuAgentCheckPrompt {
+    static let buttonTitle = "Copy ask-agent prompt"
+    static let copiedStatus = "Agent prompt copied. Paste it into your AI agent."
+    static let message =
+        "Check my FitKiku connection now by following https://kikuai.dev/fitkiku.md. "
+        + "Require data_freshness=current, fetch at most seven days through latest_local_date, "
+        + "and answer using the latest Steps and Sleep context. Tell me the latest local date "
+        + "and whether any dates or categories are missing. Never show or ask me to paste FitKiku credentials."
+}
+
+enum FitKikuReviewPromptPolicy {
+    static let requiredAgentReads = 2
+
+    private static let lastCountedAgentFetchKey = "review.last-counted-agent-fetch"
+    private static let confirmedAgentReadCountKey = "review.confirmed-agent-read-count"
+    private static let promptedVersionKey = "review.prompted-version"
+
+    static func shouldRequestReview(
+        for delivery: DeviceDeliveryStatus?,
+        appVersion: String?,
+        defaults: UserDefaults
+    ) -> Bool {
+        guard let delivery,
+              delivery.hasCurrentAgentRead,
+              let agentFetchedAt = delivery.lastAgentFetchedAt,
+              let appVersion,
+              !appVersion.isEmpty
+        else { return false }
+
+        if let previousFetch = defaults.object(forKey: lastCountedAgentFetchKey) as? Date,
+           agentFetchedAt <= previousFetch
+        {
+            return false
+        }
+
+        defaults.set(agentFetchedAt, forKey: lastCountedAgentFetchKey)
+        let count = min(
+            defaults.integer(forKey: confirmedAgentReadCountKey) + 1,
+            requiredAgentReads
+        )
+        defaults.set(count, forKey: confirmedAgentReadCountKey)
+
+        guard count >= requiredAgentReads,
+              defaults.string(forKey: promptedVersionKey) != appVersion
+        else { return false }
+
+        defaults.set(appVersion, forKey: promptedVersionKey)
+        return true
+    }
+}
+
 enum FitKikuLinks {
+    static let appStore = URL(string: "https://apps.apple.com/app/id6801516904")!
+    static let review = URL(string: "https://apps.apple.com/app/id6801516904?action=write-review")!
     static let website = URL(string: "https://kikuai.dev/fitkiku/")!
     static let source = URL(string: "https://github.com/kiku-jw/fitkiku")!
     static let telegram = URL(string: "https://t.me/kiku_ai")!
     static let privacy = URL(string: "https://kikuai.dev/fitkiku/privacy/")!
     static let support = URL(string: "https://kikuai.dev/fitkiku/support/")!
 
-    static let all = [website, source, telegram, privacy, support]
+    static let all = [appStore, review, website, source, telegram, privacy, support]
 }
 
 private struct SettingsView: View {
@@ -738,6 +848,23 @@ private struct SettingsView: View {
                 }
 
                 Section("FitKiku") {
+                    ShareLink(
+                        item: FitKikuLinks.appStore,
+                        subject: Text("FitKiku"),
+                        message: Text(
+                            "FitKiku connects read-only Steps and Sleep to a personal AI agent you approve."
+                        )
+                    ) {
+                        Label("Share FitKiku", systemImage: "square.and.arrow.up")
+                            .frame(minHeight: 44)
+                    }
+                    .accessibilityHint("Opens the system share sheet")
+                    settingsLink(
+                        "Rate FitKiku",
+                        systemImage: "star",
+                        url: FitKikuLinks.review,
+                        hint: "Opens the App Store review page"
+                    )
                     settingsLink("Product website", systemImage: "globe", url: FitKikuLinks.website)
                     settingsLink("Source code", systemImage: "chevron.left.forwardslash.chevron.right", url: FitKikuLinks.source)
                     settingsLink("Telegram blog", systemImage: "paperplane", url: FitKikuLinks.telegram)
@@ -776,12 +903,17 @@ private struct SettingsView: View {
         }
     }
 
-    private func settingsLink(_ title: String, systemImage: String, url: URL) -> some View {
+    private func settingsLink(
+        _ title: String,
+        systemImage: String,
+        url: URL,
+        hint: String = "Opens in your browser"
+    ) -> some View {
         Link(destination: url) {
             Label(title, systemImage: systemImage)
                 .frame(minHeight: 44)
         }
-        .accessibilityHint("Opens in your browser")
+        .accessibilityHint(hint)
     }
 
     private var connectionDestination: String {
@@ -800,7 +932,7 @@ private struct SettingsView: View {
         }
         switch delivery.dataFreshness {
         case .current:
-            return "Current"
+            return delivery.hasCurrentAgentRead ? "Agent up to date" : "Waiting for agent"
         case .stale:
             return "Needs attention"
         case .unknown:
