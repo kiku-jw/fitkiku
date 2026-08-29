@@ -14,19 +14,23 @@ enum APIClientError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidBaseURL:
-            "Use a valid HTTPS FitKiku server address."
+            String(localized: "Use a valid HTTPS FitKiku server address.")
         case .invalidPairingCode:
-            "Enter the current eight-digit recovery code."
+            String(localized: "Enter the current eight-digit recovery code.")
         case .invalidPairingToken:
-            "This Pair Link has an invalid or incomplete token."
+            String(localized: "This Pair Link has an invalid or incomplete token.")
         case .invalidPreview:
-            "The server returned pairing details that do not match this Pair Link."
+            String(localized: "The server returned pairing details that do not match this Pair Link.")
         case .invalidResponse:
-            "The FitKiku server returned an invalid response."
+            String(localized: "The FitKiku server returned an invalid response.")
         case let .httpStatus(status):
-            "The FitKiku server rejected the request (HTTP \(status))."
+            String(
+                format: String(localized: "The FitKiku server rejected the request (HTTP %@)."),
+                locale: Locale.current,
+                String(status)
+            )
         case .transport:
-            "The FitKiku server is currently unreachable."
+            String(localized: "The FitKiku server is currently unreachable.")
         }
     }
 }
@@ -41,6 +45,7 @@ protocol HealthTransport: Sendable {
 }
 
 protocol AgentPairingTransport: Sendable {
+    func issuePublicAgentGrant(baseURL: URL, agentName: String) async throws -> AgentPairingLink
     func previewAgentGrant(baseURL: URL, pairingToken: String) async throws -> AgentGrantPreview
     func pairAgent(
         baseURL: URL,
@@ -63,6 +68,16 @@ protocol AgentPairingTransport: Sendable {
         credential: String,
         installationID: String
     ) async throws -> DeviceDeliveryStatus
+    func rotateDeviceShareLink(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> URL
+    func revokeDeviceShareLink(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> String
 }
 
 protocol AppTransport: HealthTransport, AgentPairingTransport {}
@@ -92,6 +107,22 @@ struct AgentGrantPreviewRequest: Codable, Equatable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case pairingToken = "pairing_token"
+    }
+}
+
+struct PublicAgentGrantIssueRequest: Codable, Equatable, Sendable {
+    let agentName: String
+
+    private enum CodingKeys: String, CodingKey {
+        case agentName = "agent_name"
+    }
+}
+
+struct PublicAgentGrantIssuedResponse: Codable, Equatable, Sendable {
+    let pairLink: String
+
+    private enum CodingKeys: String, CodingKey {
+        case pairLink = "pair_link"
     }
 }
 
@@ -141,6 +172,14 @@ struct DeviceRevokeResponse: Codable, Equatable, Sendable {
     let outcome: String
 }
 
+struct DeviceShareLinkResponse: Codable, Equatable, Sendable {
+    let shareURL: String
+
+    private enum CodingKeys: String, CodingKey {
+        case shareURL = "share_url"
+    }
+}
+
 struct DeviceStatusResponse: Codable, Equatable, Sendable {
     let lastServerReceivedAt: String?
     let lastAgentFetchedAt: String?
@@ -183,7 +222,7 @@ enum PairingPayloadError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .invalidPayload:
-            "Use the complete Pair Link provided by your agent."
+            String(localized: "Use the complete Pair Link provided by your agent.")
         }
     }
 }
@@ -278,8 +317,10 @@ enum PairingPayload: Equatable, Sendable {
 }
 
 struct APIClient: AppTransport, Sendable {
-    private static let applicationVersion = "native/1.0"
+    private static let applicationVersion = "native/1.1"
     private static let pairingTokenLength = 43 ... 128
+    private static let publicShareHost = "kikuai.dev"
+    private static let publicSharePathPrefix = "/fitkiku-health/"
     static let defaultIngestTimeout: TimeInterval = 5
 
     private let session: URLSession
@@ -398,6 +439,48 @@ struct APIClient: AppTransport, Sendable {
         return try validatedAgentPreview(preview, for: baseURL)
     }
 
+    func issuePublicAgentGrant(
+        baseURL: URL,
+        agentName: String
+    ) async throws -> AgentPairingLink {
+        let request = try makePublicAgentGrantRequest(baseURL: baseURL, agentName: agentName)
+        let data = try await perform(request)
+        let response: PublicAgentGrantIssuedResponse
+        do {
+            response = try CanonicalJSON.decoder().decode(
+                PublicAgentGrantIssuedResponse.self,
+                from: data
+            )
+        } catch {
+            throw APIClientError.invalidResponse
+        }
+        guard let payload = try PairingPayload.parse(response.pairLink),
+              case let .agent(link) = payload,
+              link.baseURL == baseURL
+        else {
+            throw APIClientError.invalidResponse
+        }
+        return link
+    }
+
+    func makePublicAgentGrantRequest(
+        baseURL: URL,
+        agentName: String
+    ) throws -> URLRequest {
+        let normalizedName = agentName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1 ... 200).contains(normalizedName.count) else {
+            throw APIClientError.invalidResponse
+        }
+        var request = URLRequest(url: endpoint("healthkit/public/app-grants", baseURL: baseURL))
+        request.httpMethod = "POST"
+        request.timeoutInterval = pairingTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try CanonicalJSON.encoder(sortedKeys: false).encode(
+            PublicAgentGrantIssueRequest(agentName: normalizedName)
+        )
+        return request
+    }
+
     func validatedAgentPreview(
         _ preview: AgentGrantPreview,
         for baseURL: URL
@@ -499,6 +582,44 @@ struct APIClient: AppTransport, Sendable {
             throw APIClientError.invalidResponse
         }
         return try validatedDeviceStatus(response)
+    }
+
+    func rotateDeviceShareLink(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> URL {
+        let request = try makeDeviceShareLinkRequest(
+            path: "healthkit/device/share-link",
+            baseURL: baseURL,
+            credential: credential,
+            installationID: installationID
+        )
+        let data = try await perform(request)
+        let response: DeviceShareLinkResponse
+        do {
+            response = try CanonicalJSON.decoder().decode(DeviceShareLinkResponse.self, from: data)
+        } catch {
+            throw APIClientError.invalidResponse
+        }
+        return try Self.validatedPublicShareURL(response.shareURL)
+    }
+
+    func revokeDeviceShareLink(
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) async throws -> String {
+        let request = try makeDeviceShareLinkRequest(
+            path: "healthkit/device/share-link/revoke",
+            baseURL: baseURL,
+            credential: credential,
+            installationID: installationID
+        )
+        let data = try await perform(request)
+        let outcome = try CanonicalJSON.decoder().decode(DeviceRevokeResponse.self, from: data).outcome
+        guard outcome == "revoked" else { throw APIClientError.invalidResponse }
+        return outcome
     }
 
     func validatedDeviceStatus(_ response: DeviceStatusResponse) throws -> DeviceDeliveryStatus {
@@ -648,6 +769,48 @@ struct APIClient: AppTransport, Sendable {
         request.timeoutInterval = pairingTimeout
         request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
         return request
+    }
+
+    func makeDeviceShareLinkRequest(
+        path: String,
+        baseURL: URL,
+        credential: String,
+        installationID: String
+    ) throws -> URLRequest {
+        guard !credential.isEmpty,
+              (16 ... 128).contains(installationID.count),
+              ["healthkit/device/share-link", "healthkit/device/share-link/revoke"].contains(path)
+        else {
+            throw APIClientError.invalidResponse
+        }
+        var request = URLRequest(url: endpoint(path, baseURL: baseURL))
+        request.httpMethod = "POST"
+        request.timeoutInterval = pairingTimeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(credential)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try CanonicalJSON.encoder(sortedKeys: false).encode(
+            DeviceRevokeRequest(installationID: installationID)
+        )
+        return request
+    }
+
+    static func validatedPublicShareURL(_ value: String) throws -> URL {
+        guard let components = URLComponents(string: value),
+              components.scheme?.lowercased() == "https",
+              components.host?.lowercased() == publicShareHost,
+              components.user == nil,
+              components.password == nil,
+              components.port == nil,
+              components.query == nil,
+              components.fragment == nil,
+              components.path.hasPrefix(publicSharePathPrefix),
+              components.path.dropFirst(publicSharePathPrefix.count).contains("/") == false,
+              isValidPairingToken(String(components.path.dropFirst(publicSharePathPrefix.count))),
+              let url = components.url
+        else {
+            throw APIClientError.invalidResponse
+        }
+        return url
     }
 
     private static func optionalISO8601Date(_ value: String?) throws -> Date? {

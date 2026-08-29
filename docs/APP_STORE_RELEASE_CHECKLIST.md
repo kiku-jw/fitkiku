@@ -15,7 +15,7 @@
 - **Bundle ID:** `com.kikuai.fitkiku.health`
 - **Minimum iOS:** 17.0
 - **Released version/build:** 1.0 (3)
-- **Current public source build:** 1.0 (3)
+- **Current public source build:** 1.1 (4), not yet released
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
 - **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-23
 
@@ -42,6 +42,9 @@
 - [x] Owner explicitly approved submission.
 - [x] Apple's public catalog exposes FitKiku 1.0 in configured non-EU
       storefronts through `https://apps.apple.com/app/id6801516904`.
+- [ ] Build 4 production migration/proxy readback and the exact physical
+      **Connect ChatGPT -> current fetch -> revoke -> old-link denied** sequence
+      pass before archive or upload.
 
 Associated Domains and an Apple App Site Association file are not 1.0 release
 gates. The current Pair Link contract intentionally uses the registered
@@ -56,8 +59,8 @@ keywords below were saved and read back from App Store Connect on 2026-08-25;
 the remaining product-page fields retain their previously verified values.
 Promotional text remains intentionally empty.
 
-The paste-ready English metadata and review-note template live in
-[`docs/app-store/metadata/en-US.md`](app-store/metadata/en-US.md).
+The checked-in product copy below describes the next source candidate. Store
+metadata must not claim it is released until build 4 passes its separate gates.
 
 - **Name:** FitKiku
 - **App Store:** https://apps.apple.com/app/id6801516904
@@ -65,19 +68,18 @@ The paste-ready English metadata and review-note template live in
 - **Primary category candidate:** Health & Fitness
 - **Promotional text:** optional; omit for 1.0 unless it communicates a real,
   currently available capability.
-- **Short promise:** Connect read-only Steps and Sleep to an agent you approve,
-  with freshness, missing-data status, and revocation visible on iPhone.
+- **Short promise:** Put recent Steps and Sleep in ChatGPT with one private,
+  revocable read-only link and visible freshness.
 - **Keywords:** health data,ai agent,privacy,fitness,wellness,activity,tracking,sync,accountability
 
 ### Description draft
 
-FitKiku is a focused iPhone companion for bringing recent Apple Health context
-to a personal AI agent you approve.
+FitKiku is a focused iPhone companion for bringing recent Steps and Sleep into
+a web-capable ChatGPT chat or another personal AI agent you approve.
 
-Review Steps and Sleep summaries on your iPhone before connecting anything.
-When you choose to connect a compatible agent, FitKiku shows the exact HTTPS
-destination, requested read-only categories, retention statement, and AI-
-processing disclosure before approval.
+Tap Connect ChatGPT, approve a private read-only link, grant Steps and Sleep
+access, and copy one prepared message containing that link into your chat. Pair
+Links and recovery codes remain Advanced-only tools for compatible agents.
 
 FitKiku helps you:
 
@@ -351,6 +353,11 @@ release candidate.
       `6801516904`, with a 2026-08-27 release date and zero price. Direct App
       Store URLs return the live product page in supported non-EU storefronts;
       sampled EU storefronts remain unavailable as configured.
+- [x] On 2026-08-29, the normalized MPL public 1.1 (4) source passed 74/74
+      iPhone 17 / iOS 26.5 Simulator tests in English and 74/74 in Russian.
+      Its app-created private-link flow, Russian UI, production deployment,
+      physical acceptance, signed archive, upload, review, and release retain
+      their separate gates.
 - [ ] Unattended regularity remains `INCONCLUSIVE` and `NO-GO` for public
       claims. Physical VoiceOver, offline, reboot, delayed-Watch, force-quit,
       and fresh external-participant flows remain unproved.

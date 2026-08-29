@@ -1,7 +1,2167 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-
+  "sourceLanguage": "en",
+  "strings": {
+    "%@ h %@ min": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ h %2$@ min"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ ч %2$@ мин"
+          }
+        }
+      }
+    },
+    "%@ · Steps %@, Sleep %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$@ · Steps %2$@, Sleep %3$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · Шаги: %2$@, сон: %3$@"
+          }
+        }
+      }
+    },
+    "8-digit code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "8-значный код"
+          }
+        }
+      }
+    },
+    "A legacy recovery link was loaded. Review the server before pairing.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загружена устаревшая ссылка восстановления. Проверьте сервер перед подключением."
+          }
+        }
+      }
+    },
+    "AI processing": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обработка ИИ"
+          }
+        }
+      }
+    },
+    "After Apple Health permission and sync, FitKiku sends this server daily Steps, asleep minutes, coverage, and Health source details. Sleep interval times and categories stay on this iPhone.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После разрешения доступа к «Здоровью» и синхронизации FitKiku отправляет на этот сервер дневные данные о шагах, минутах сна, полноте данных и источниках. Время и категории интервалов сна остаются на этом iPhone."
+          }
+        }
+      }
+    },
+    "Agent fetched": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ассистент получил данные"
+          }
+        }
+      }
+    },
+    "Agent up to date": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У ассистента свежие данные"
+          }
+        }
+      }
+    },
+    "Allow Apple Health": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешите доступ к «Здоровью»"
+          }
+        }
+      }
+    },
+    "Anyone with the link can read your recent Steps and Sleep. It cannot write to Apple Health or access other categories.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Любой, у кого есть ссылка, сможет читать ваши недавние данные о шагах и сне. Ссылка не позволяет записывать данные в «Здоровье» или читать другие категории."
+          }
+        }
+      }
+    },
+    "Apple Health access could not be requested.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось запросить доступ к приложению «Здоровье»."
+          }
+        }
+      }
+    },
+    "Apple Health is not available on this device.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложение «Здоровье» недоступно на этом устройстве."
+          }
+        }
+      }
+    },
+    "Apple Health is unavailable on this device.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложение «Здоровье» недоступно на этом устройстве."
+          }
+        }
+      }
+    },
+    "Apple Health permission is a separate next step.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешение приложения «Здоровье» запрашивается отдельно на следующем шаге."
+          }
+        }
+      }
+    },
+    "Apple keeps read-denial status private. Missing data stays Unknown; FitKiku never replaces it with zero.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple не сообщает приложениям об отказе в чтении. Отсутствующие данные остаются неизвестными — FitKiku никогда не подменяет их нулём."
+          }
+        }
+      }
+    },
+    "Approve connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одобрить подключение"
+          }
+        }
+      }
+    },
+    "Approve this connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одобрите подключение"
+          }
+        }
+      }
+    },
+    "Approved destination": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одобренный сервер"
+          }
+        }
+      }
+    },
+    "Background delivery could not be registered. Manual sync remains available.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось включить фоновую передачу. Ручная синхронизация по-прежнему доступна."
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмена"
+          }
+        }
+      }
+    },
+    "ChatGPT or another approved agent fetched the latest server update.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ChatGPT или другой одобренный ассистент получил последние данные с сервера."
+          }
+        }
+      }
+    },
+    "Check and sync now": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить и синхронизировать"
+          }
+        }
+      }
+    },
+    "Check delivery": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить передачу"
+          }
+        }
+      }
+    },
+    "Checking…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверяем…"
+          }
+        }
+      }
+    },
+    "Claimed agent": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заявленный ассистент"
+          }
+        }
+      }
+    },
+    "Complete": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Полные"
+          }
+        }
+      }
+    },
+    "Connect": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить"
+          }
+        }
+      }
+    },
+    "Connect ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить ChatGPT"
+          }
+        }
+      }
+    },
+    "Connect the app and request Apple Health access before syncing.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключите приложение и разрешите чтение данных «Здоровья» перед синхронизацией."
+          }
+        }
+      }
+    },
+    "Connect with recovery code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключить по коду восстановления"
+          }
+        }
+      }
+    },
+    "Connected through recovery setup. Review Apple Health access next.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключено через восстановление. Теперь проверьте доступ к приложению «Здоровье»."
+          }
+        }
+      }
+    },
+    "Connected, but the private ChatGPT link could not be created. Try again below. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключение готово, но создать приватную ссылку для ChatGPT не удалось. Повторите попытку ниже. %@"
+          }
+        }
+      }
+    },
+    "Connected. Allow Apple Health next, then copy your private ChatGPT prompt.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключено. Теперь разрешите доступ к «Здоровью», а затем скопируйте готовое сообщение для ChatGPT."
+          }
+        }
+      }
+    },
+    "Connected. You can now review and grant Apple Health read access.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключено. Теперь можно проверить и разрешить чтение данных «Здоровья»."
+          }
+        }
+      }
+    },
+    "Connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключение"
+          }
+        }
+      }
+    },
+    "Connection request cancelled.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрос на подключение отменён."
+          }
+        }
+      }
+    },
+    "Continue to Health": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Продолжить в «Здоровье»"
+          }
+        }
+      }
+    },
+    "Copy for ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать для ChatGPT"
+          }
+        }
+      }
+    },
+    "Copy one prepared message into an ordinary ChatGPT chat. It includes your private link and asks ChatGPT to fetch it again for every health answer.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопируйте одно готовое сообщение в обычный чат ChatGPT. В нём уже есть ваша приватная ссылка и просьба заново получать данные перед каждым ответом о здоровье."
+          }
+        }
+      }
+    },
+    "Coverage: Steps %@, Sleep %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Coverage: Steps %1$@, Sleep %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Полнота данных: шаги — %1$@, сон — %2$@"
+          }
+        }
+      }
+    },
+    "Create a private link for this connection. It does not expose raw Health data, sources, or write access.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создайте приватную ссылку для этого подключения. Она не открывает сырые данные «Здоровья», источники или доступ на запись."
+          }
+        }
+      }
+    },
+    "Create my private link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать мою приватную ссылку"
+          }
+        }
+      }
+    },
+    "Create private link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать приватную ссылку"
+          }
+        }
+      }
+    },
+    "Create your private link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создайте приватную ссылку"
+          }
+        }
+      }
+    },
+    "Daily Steps and Sleep are connected, but recent delivery status is still unknown.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дневные данные о шагах и сне подключены, но статус недавней передачи пока неизвестен."
+          }
+        }
+      }
+    },
+    "Daily Steps and Sleep are connected, but some recent delivery still needs attention.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дневные данные о шагах и сне подключены, но недавняя передача требует внимания."
+          }
+        }
+      }
+    },
+    "Daily Steps and Sleep can go here. Delivery has not been checked yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сюда будут поступать дневные данные о шагах и сне. Передача ещё не проверялась."
+          }
+        }
+      }
+    },
+    "Delete FitKiku account and data": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить аккаунт и данные FitKiku"
+          }
+        }
+      }
+    },
+    "Delete FitKiku account?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить аккаунт FitKiku?"
+          }
+        }
+      }
+    },
+    "Delete account and data": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить аккаунт и данные"
+          }
+        }
+      }
+    },
+    "Delivery details": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробности передачи"
+          }
+        }
+      }
+    },
+    "Delivery has not been checked yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Передача ещё не проверялась."
+          }
+        }
+      }
+    },
+    "Delivery not checked": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Передача не проверена"
+          }
+        }
+      }
+    },
+    "Delivery status is unavailable. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус передачи недоступен. %@"
+          }
+        }
+      }
+    },
+    "Delivery status is unavailable. Try again when you're online.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус передачи недоступен. Повторите попытку, когда появится интернет."
+          }
+        }
+      }
+    },
+    "Delivery status unavailable": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус передачи недоступен"
+          }
+        }
+      }
+    },
+    "Destination": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер"
+          }
+        }
+      }
+    },
+    "Disconnect and revoke server access": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключиться и отозвать доступ"
+          }
+        }
+      }
+    },
+    "Disconnect the current server before opening another Pair Link.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отключите текущий сервер, прежде чем открывать другую ссылку подключения."
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово"
+          }
+        }
+      }
+    },
+    "Enter the current eight-digit recovery code.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите действующий 8-значный код восстановления."
+          }
+        }
+      }
+    },
+    "Error: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ошибка: %@"
+          }
+        }
+      }
+    },
+    "Finish local cleanup": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершить локальную очистку"
+          }
+        }
+      }
+    },
+    "Finish removing the revoked local credential before connecting again.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершите удаление отозванных локальных данных подключения, прежде чем подключаться снова."
+          }
+        }
+      }
+    },
+    "FitKiku": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku"
+          }
+        }
+      }
+    },
+    "FitKiku asks only for read access to Steps and Sleep. Nothing is written to Apple Health.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku запрашивает только чтение данных о шагах и сне. Приложение ничего не записывает в «Здоровье»."
+          }
+        }
+      }
+    },
+    "FitKiku connects read-only Steps and Sleep to a personal AI agent you approve.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku подключает данные о шагах и сне только для чтения к одобренному вами персональному ИИ-ассистенту."
+          }
+        }
+      }
+    },
+    "FitKiku creates a private link. Then allow Steps and Sleep and copy one prepared message into ChatGPT.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku создаст приватную ссылку. Затем разрешите чтение шагов и сна и скопируйте одно готовое сообщение в ChatGPT."
+          }
+        }
+      }
+    },
+    "FitKiku is already up to date.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В FitKiku уже актуальные данные."
+          }
+        }
+      }
+    },
+    "FitKiku is up to date.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В FitKiku актуальные данные."
+          }
+        }
+      }
+    },
+    "FitKiku keeps recent Steps and Sleep behind one private, read-only link. You decide when to share or revoke it.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku хранит недавние данные о шагах и сне за одной приватной ссылкой только для чтения. Вы сами решаете, когда поделиться ею или отозвать её."
+          }
+        }
+      }
+    },
+    "FitKiku private ChatGPT link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приватная ссылка FitKiku для ChatGPT"
+          }
+        }
+      }
+    },
+    "FitKiku sends daily Steps, asleep minutes, coverage, and source details only after approval. Sleep interval times stay on this iPhone.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только после вашего одобрения FitKiku отправляет дневные данные о шагах, минутах сна, полноте данных и источниках. Время интервалов сна остаётся на этом iPhone."
+          }
+        }
+      }
+    },
+    "FitKiku server data and local protected data were deleted. Apple Health was unchanged.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные FitKiku на сервере и защищённые локальные данные удалены. Данные в приложении «Здоровье» не изменились."
+          }
+        }
+      }
+    },
+    "FitKiku server data was deleted. Local protected-data cleanup is still pending; retry below. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные FitKiku на сервере удалены. Очистка защищённых локальных данных ещё не завершена; повторите попытку ниже. %@"
+          }
+        }
+      }
+    },
+    "FitKiku will create a revocable link for recent Steps and Sleep. Anyone with the link can read that summary.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FitKiku создаст отзывную ссылку на недавнюю сводку о шагах и сне. Любой, у кого есть ссылка, сможет прочитать эту сводку."
+          }
+        }
+      }
+    },
+    "HTTPS destination": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPS-сервер"
+          }
+        }
+      }
+    },
+    "Health access was requested. Apple keeps read-denial status private.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к «Здоровью» запрошен. Apple не сообщает приложениям об отказе в чтении."
+          }
+        }
+      }
+    },
+    "Health access was requested. Connect a server later to sync.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к «Здоровью» запрошен. Подключите сервер позже для синхронизации."
+          }
+        }
+      }
+    },
+    "Health permission required": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужно разрешение «Здоровья»"
+          }
+        }
+      }
+    },
+    "Health sources on this iPhone: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Источников данных «Здоровья» на этом iPhone: %@"
+          }
+        }
+      }
+    },
+    "Help and privacy": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Помощь и конфиденциальность"
+          }
+        }
+      }
+    },
+    "Interval timestamps are not included in schema 1.1 uploads.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Время интервалов не отправляется в схеме 1.1."
+          }
+        }
+      }
+    },
+    "Keep the message private. Anyone with its link can read your recent Steps and Sleep until you revoke it in Settings.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не публикуйте это сообщение. Любой, у кого есть ссылка из него, сможет читать ваши недавние данные о шагах и сне, пока вы не отзовёте ссылку в Настройках."
+          }
+        }
+      }
+    },
+    "Last server-confirmed sync %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последняя подтверждённая сервером синхронизация: %@"
+          }
+        }
+      }
+    },
+    "Latest server day": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последняя дата на сервере"
+          }
+        }
+      }
+    },
+    "Local Apple Health": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные «Здоровья» на iPhone"
+          }
+        }
+      }
+    },
+    "Local Health details": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Локальные сведения «Здоровья»"
+          }
+        }
+      }
+    },
+    "Local only": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только локально"
+          }
+        }
+      }
+    },
+    "Local protected data for the ended connection was removed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Защищённые локальные данные завершённого подключения удалены."
+          }
+        }
+      }
+    },
+    "Missing recent server days: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На сервере отсутствуют недавние даты: %@"
+          }
+        }
+      }
+    },
+    "Needs attention": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Требует внимания"
+          }
+        }
+      }
+    },
+    "Next step": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий шаг"
+          }
+        }
+      }
+    },
+    "No Apple Health summary is available yet. Missing data stays Unknown.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сводки из «Здоровья» пока нет. Отсутствующие данные остаются неизвестными."
+          }
+        }
+      }
+    },
+    "No Health summary is available yet": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сводки из «Здоровья» пока нет"
+          }
+        }
+      }
+    },
+    "No active FitKiku connection.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет активного подключения FitKiku."
+          }
+        }
+      }
+    },
+    "No private ChatGPT link exists for this connection.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для этого подключения ещё нет приватной ссылки ChatGPT."
+          }
+        }
+      }
+    },
+    "Not available": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Недоступно"
+          }
+        }
+      }
+    },
+    "Not checked": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не проверено"
+          }
+        }
+      }
+    },
+    "Not fetched yet": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ассистент ещё не запрашивал"
+          }
+        }
+      }
+    },
+    "On this iPhone": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На этом iPhone"
+          }
+        }
+      }
+    },
+    "One or more days are queued on this iPhone and will be retried.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Один или несколько дней сохранены в очереди на этом iPhone; отправка повторится позже."
+          }
+        }
+      }
+    },
+    "One tap": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одно нажатие"
+          }
+        }
+      }
+    },
+    "Only after you paste or share the prepared prompt. ChatGPT may retain the link and returned summary under its own policy.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ИИ увидит данные только после того, как вы вставите или отправите готовое сообщение. ChatGPT может хранить ссылку и полученную сводку по своим правилам."
+          }
+        }
+      }
+    },
+    "Open settings": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть настройки"
+          }
+        }
+      }
+    },
+    "Opens in your browser": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает в браузере"
+          }
+        }
+      }
+    },
+    "Opens the App Store review page": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает страницу отзыва в App Store"
+          }
+        }
+      }
+    },
+    "Opens the system share sheet": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает системное меню «Поделиться»"
+          }
+        }
+      }
+    },
+    "Other agents and recovery": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Другие ассистенты и восстановление"
+          }
+        }
+      }
+    },
+    "Pair Link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка подключения"
+          }
+        }
+      }
+    },
+    "Pair the app before syncing.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключите приложение перед синхронизацией."
+          }
+        }
+      }
+    },
+    "Pairing code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Код подключения"
+          }
+        }
+      }
+    },
+    "Partial": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Частичные"
+          }
+        }
+      }
+    },
+    "Paste Pair Link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставьте ссылку подключения"
+          }
+        }
+      }
+    },
+    "Paste a Pair Link only if a compatible FitKiku connection already returned one.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вставляйте ссылку подключения только если совместимый сервис FitKiku уже выдал её."
+          }
+        }
+      }
+    },
+    "Prepared message copied. Paste it into ChatGPT.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готовое сообщение скопировано. Вставьте его в ChatGPT."
+          }
+        }
+      }
+    },
+    "Privacy details": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробнее о конфиденциальности"
+          }
+        }
+      }
+    },
+    "Privacy policy": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Политика конфиденциальности"
+          }
+        }
+      }
+    },
+    "Private AI link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приватная ссылка для ИИ"
+          }
+        }
+      }
+    },
+    "Private ChatGPT link created. Keep it private; anyone with it can read your recent Steps and Sleep.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приватная ссылка для ChatGPT создана. Не публикуйте её: любой, у кого она есть, сможет читать ваши недавние данные о шагах и сне."
+          }
+        }
+      }
+    },
+    "Private ChatGPT link revoked. The iPhone connection remains active.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приватная ссылка для ChatGPT отозвана. Подключение iPhone осталось активным."
+          }
+        }
+      }
+    },
+    "Private link ready": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приватная ссылка готова"
+          }
+        }
+      }
+    },
+    "Product website": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сайт продукта"
+          }
+        }
+      }
+    },
+    "Queued on this iPhone after sync failed. FitKiku will retry when it gets another opportunity.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "После сбоя синхронизации данные сохранены в очереди на этом iPhone. FitKiku повторит отправку при следующей возможности."
+          }
+        }
+      }
+    },
+    "Rate FitKiku": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оценить FitKiku"
+          }
+        }
+      }
+    },
+    "Read-only access requested": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрошен доступ только для чтения"
+          }
+        }
+      }
+    },
+    "Read-only data": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные только для чтения"
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово"
+          }
+        }
+      }
+    },
+    "Recent Steps and Sleep reached FitKiku. Paste your prepared prompt when you want ChatGPT to read them.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Свежие данные о шагах и сне уже в FitKiku. Когда захотите передать их ChatGPT, вставьте готовое сообщение."
+          }
+        }
+      }
+    },
+    "Recent delivery needs attention.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Недавняя передача данных требует внимания."
+          }
+        }
+      }
+    },
+    "Recent server days are present.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Недавние даты присутствуют на сервере."
+          }
+        }
+      }
+    },
+    "Recovery connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановление подключения"
+          }
+        }
+      }
+    },
+    "Refresh delivery details": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить сведения о передаче"
+          }
+        }
+      }
+    },
+    "Refresh server and agent status, then inspect technical details only when needed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновите статус сервера и ассистента. Технические сведения открывайте только при необходимости."
+          }
+        }
+      }
+    },
+    "Remove the unusable credential from this iPhone before creating another connection.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалите с этого iPhone недействующие данные подключения, прежде чем создавать новое."
+          }
+        }
+      }
+    },
+    "Replace link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменить ссылку"
+          }
+        }
+      }
+    },
+    "Replace private link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменить приватную ссылку"
+          }
+        }
+      }
+    },
+    "Replace private link?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменить приватную ссылку?"
+          }
+        }
+      }
+    },
+    "Request expires": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запрос действует до"
+          }
+        }
+      }
+    },
+    "Retention": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хранение данных"
+          }
+        }
+      }
+    },
+    "Review connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить подключение"
+          }
+        }
+      }
+    },
+    "Review the claimed agent and disclosures before approving.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перед одобрением проверьте заявленного ассистента и условия обработки данных."
+          }
+        }
+      }
+    },
+    "Review the private read-only connection before approving.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перед одобрением проверьте приватное подключение только для чтения."
+          }
+        }
+      }
+    },
+    "Revoke link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать ссылку"
+          }
+        }
+      }
+    },
+    "Revoke private link": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать приватную ссылку"
+          }
+        }
+      }
+    },
+    "Revoke private link?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отозвать приватную ссылку?"
+          }
+        }
+      }
+    },
+    "Secure storage could not be read. Disconnect and connect FitKiku again.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать защищённое хранилище. Отключите и снова подключите FitKiku."
+          }
+        }
+      }
+    },
+    "Secure storage is unavailable on this device. FitKiku cannot connect until it is available.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Защищённое хранилище недоступно на этом устройстве. FitKiku не сможет подключиться, пока оно недоступно."
+          }
+        }
+      }
+    },
+    "Server access has already ended, but local protected-data cleanup is still pending. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу уже прекращён, но очистка защищённых локальных данных ещё не завершена. %@"
+          }
+        }
+      }
+    },
+    "Server access is already revoked": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу уже отозван"
+          }
+        }
+      }
+    },
+    "Server access is already revoked.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу уже отозван."
+          }
+        }
+      }
+    },
+    "Server access is already revoked. Finish local cleanup from the main screen before pairing again.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу уже отозван. Завершите локальную очистку на главном экране перед новым подключением."
+          }
+        }
+      }
+    },
+    "Server access was not revoked. This iPhone remains connected; try again. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу не отозван. Этот iPhone остаётся подключённым; повторите попытку. %@"
+          }
+        }
+      }
+    },
+    "Server access was revoked and local protected data was removed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу отозван, защищённые локальные данные удалены."
+          }
+        }
+      }
+    },
+    "Server access was revoked. Local protected-data cleanup is still pending; retry below. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступ к серверу отозван. Очистка защищённых локальных данных ещё не завершена; повторите попытку ниже. %@"
+          }
+        }
+      }
+    },
+    "Server address": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Адрес сервера"
+          }
+        }
+      }
+    },
+    "Server check: %@ days; %@ updates confirmed.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Server check: %1$@ days; %2$@ updates confirmed."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверено дней: %1$@. Сервер подтвердил обновлений: %2$@."
+          }
+        }
+      }
+    },
+    "Server confirmed": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер подтвердил"
+          }
+        }
+      }
+    },
+    "Server data was not deleted. This iPhone remains connected; try again. %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные на сервере не удалены. Этот iPhone остаётся подключённым; повторите попытку. %@"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Настройки"
+          }
+        }
+      }
+    },
+    "Share FitKiku": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поделиться FitKiku"
+          }
+        }
+      }
+    },
+    "Share with ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить в ChatGPT"
+          }
+        }
+      }
+    },
+    "Share with another AI": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить другому ИИ"
+          }
+        }
+      }
+    },
+    "Sleep": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сон"
+          }
+        }
+      }
+    },
+    "Sleep intervals on this iPhone: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Интервалов сна на этом iPhone: %@"
+          }
+        }
+      }
+    },
+    "Source code": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходный код"
+          }
+        }
+      }
+    },
+    "Start here": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Начните здесь"
+          }
+        }
+      }
+    },
+    "Status": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус"
+          }
+        }
+      }
+    },
+    "Status: %@": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус: %@"
+          }
+        }
+      }
+    },
+    "Steps": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шаги"
+          }
+        }
+      }
+    },
+    "Steps and Sleep": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шаги и сон"
+          }
+        }
+      }
+    },
+    "Support": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поддержка"
+          }
+        }
+      }
+    },
+    "Sync failed before the update could be queued. Open FitKiku and try again.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация завершилась сбоем до сохранения обновления в очередь. Откройте FitKiku и повторите попытку."
+          }
+        }
+      }
+    },
+    "Sync failed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация не удалась."
+          }
+        }
+      }
+    },
+    "Sync history must be between one and seven days.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Период синхронизации должен составлять от одного до семи дней."
+          }
+        }
+      }
+    },
+    "Telegram blog": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Блог в Telegram"
+          }
+        }
+      }
+    },
+    "The FitKiku server is currently unreachable.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер FitKiku сейчас недоступен."
+          }
+        }
+      }
+    },
+    "The FitKiku server rejected the request (HTTP %@).": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер FitKiku отклонил запрос (HTTP %@)."
+          }
+        }
+      }
+    },
+    "The FitKiku server returned an invalid response.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер FitKiku вернул некорректный ответ."
+          }
+        }
+      }
+    },
+    "The link will stop working immediately. Your iPhone remains connected to FitKiku.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка перестанет работать сразу. Ваш iPhone останется подключён к FitKiku."
+          }
+        }
+      }
+    },
+    "The native health client is unavailable.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Системный клиент данных о здоровье недоступен."
+          }
+        }
+      }
+    },
+    "The old link will stop working immediately. Chats that saved it will need the new prepared message.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Старая ссылка сразу перестанет работать. В чаты, где она сохранена, нужно будет отправить новое готовое сообщение."
+          }
+        }
+      }
+    },
+    "The requesting service supplied this name; FitKiku has not verified its identity.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это имя указал запрашивающий сервис; FitKiku не подтвердил его подлинность."
+          }
+        }
+      }
+    },
+    "The server could not confirm the daily update.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер не смог подтвердить дневное обновление."
+          }
+        }
+      }
+    },
+    "The server returned pairing details that do not match this Pair Link.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер вернул сведения, которые не соответствуют этой ссылке подключения."
+          }
+        }
+      }
+    },
+    "These summaries stay available on this iPhone, even without an agent connection.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эти сводки остаются доступными на этом iPhone даже без подключения ассистента."
+          }
+        }
+      }
+    },
+    "This Pair Link has an invalid or incomplete token.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В этой ссылке подключения некорректный или неполный токен."
+          }
+        }
+      }
+    },
+    "This Pair Link has expired. Ask your agent for a new link.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Срок действия ссылки подключения истёк. Попросите ассистента создать новую."
+          }
+        }
+      }
+    },
+    "This connection is approved, but delivery status is currently unavailable.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключение одобрено, но статус передачи сейчас недоступен."
+          }
+        }
+      }
+    },
+    "This destination is approved, but Apple Health permission is still a separate step.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер одобрен, но разрешение приложения «Здоровье» всё ещё нужно выдать отдельно."
+          }
+        }
+      }
+    },
+    "This older flow does not include the agent's retention or AI-processing disclosure.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В этом устаревшем способе подключения нет сведений о сроке хранения и обработке данных ИИ."
+          }
+        }
+      }
+    },
+    "This permanently deletes the anonymous FitKiku connection, synced summaries, and agent access from the server. It does not delete anything from Apple Health.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это навсегда удалит анонимное подключение FitKiku, синхронизированные сводки и доступ ассистента с сервера. Данные в приложении «Здоровье» не изменятся."
+          }
+        }
+      }
+    },
+    "This step only approves the destination below. Apple Health permission is still separate.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На этом шаге вы одобряете только указанный сервер. Разрешение приложения «Здоровье» запрашивается отдельно."
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня"
+          }
+        }
+      }
+    },
+    "Unavailable": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Недоступно"
+          }
+        }
+      }
+    },
+    "Unknown": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Неизвестно"
+          }
+        }
+      }
+    },
+    "Upload attempts must be between one and ten.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Число попыток отправки должно быть от одной до десяти."
+          }
+        }
+      }
+    },
+    "Use a valid HTTPS FitKiku server address.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Укажите корректный HTTPS-адрес сервера FitKiku."
+          }
+        }
+      }
+    },
+    "Use the complete Pair Link provided by your agent.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте полную ссылку подключения, которую выдал ваш ассистент."
+          }
+        }
+      }
+    },
+    "Use this only when your private FitKiku server gives you an 8-digit code.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте этот способ только если ваш приватный сервер FitKiku выдал 8-значный код."
+          }
+        }
+      }
+    },
+    "Use with ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать с ChatGPT"
+          }
+        }
+      }
+    },
+    "Waiting for Apple Health permission": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидается разрешение «Здоровья»"
+          }
+        }
+      }
+    },
+    "Waiting for agent": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидается запрос ассистента"
+          }
+        }
+      }
+    },
+    "Waiting for first sync": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ожидается первая синхронизация"
+          }
+        }
+      }
+    },
+    "When AI sees it": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Когда это увидит ИИ"
+          }
+        }
+      }
+    },
+    "Yesterday": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вчера"
+          }
+        }
+      }
+    },
+    "You can review local summaries before connecting an agent.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Можно посмотреть локальные сводки до подключения ассистента."
+          }
+        }
+      }
+    },
+    "You will approve read-only Steps and Sleep access before anything is shared.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "До передачи данных вы отдельно одобрите доступ к шагам и сну только для чтения."
+          }
+        }
+      }
+    },
+    "Your health, ready for ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шаги и сон — в ChatGPT"
+          }
+        }
+      }
+    },
+    "Your iPhone data is current on the server, but your agent has not read the latest update yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На сервере уже актуальные данные с iPhone, но ассистент ещё не прочитал последнее обновление."
+          }
+        }
+      }
+    },
+    "fitkiku.chatgpt.prompt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open this private FitKiku URL now, and open it again before every health-related answer:\n%@\n\nThis is a normal HTTPS JSON URL. Do not look for a FitKiku connector or Pair Link; none is required. Use only the Steps and Sleep daily aggregates returned by that URL. Always state data_freshness and latest_local_date. Treat missing dates or categories as unknown, never as zero. If data_freshness is not current, say clearly that the data may be stale. The link is read-only. Never repeat or expose the private URL in your answer."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открой эту приватную ссылку FitKiku сейчас и открывай её заново перед каждым ответом о здоровье:\n%@\n\nЭто обычная HTTPS-ссылка с JSON. Не ищи коннектор FitKiku или ссылку подключения: они не нужны. Используй только дневные сводки о шагах и сне, которые вернула ссылка. Всегда указывай data_freshness и latest_local_date. Считай отсутствующие даты или категории неизвестными, а не нулевыми. Если data_freshness не равен current, прямо скажи, что данные могут быть устаревшими. Ссылка даёт доступ только для чтения. Никогда не повторяй и не показывай приватную ссылку в ответе."
+          }
+        }
+      }
+    },
+    "https://fitkiku.example": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "https://fitkiku.example"
+          }
+        }
+      }
+    },
+    "iPhone connected": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone подключён"
+          }
+        }
+      }
+    }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

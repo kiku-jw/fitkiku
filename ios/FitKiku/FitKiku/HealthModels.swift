@@ -19,7 +19,9 @@ struct HealthMetricsPayload: Codable, Hashable, Sendable {
 }
 
 enum NativeHealthDisclosure {
-    static let outbound = "After Apple Health permission and sync, FitKiku sends this server daily Steps, asleep minutes, coverage, and Health source details. Sleep interval times and categories stay on this iPhone."
+    static var outbound: String {
+        String(localized: "After Apple Health permission and sync, FitKiku sends this server daily Steps, asleep minutes, coverage, and Health source details. Sleep interval times and categories stay on this iPhone.")
+    }
 }
 
 enum SleepCategory: String, Codable, CaseIterable, Hashable, Sendable {

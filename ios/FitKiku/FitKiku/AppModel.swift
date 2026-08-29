@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var lastSyncAt: Date?
     @Published private(set) var deliveryStatus: DeviceDeliveryStatus?
     @Published private(set) var deliveryStatusError: String?
+    @Published private(set) var privateShareURL: URL?
     @Published private(set) var statusMessage: String?
     @Published private(set) var errorMessage: String?
 
@@ -41,6 +42,8 @@ final class AppModel: ObservableObject {
     private let syntheticDemoRuntime: Bool
     private var restored = false
     private var observersInstalled = false
+
+    private static let hostedServiceURL = URL(string: "https://fitkiku-origin.kikuai.dev")!
 
     var isSyntheticDemo: Bool { syntheticDemoRuntime }
     var canDeleteAccount: Bool { isPaired && deliveryStatus?.canDeleteAccount == true }
@@ -167,6 +170,7 @@ final class AppModel: ObservableObject {
                 )
             )
             isPaired = true
+            privateShareURL = try keychain.privateShareURL()
             if healthAccessRequested {
                 await registerObservers()
             }
@@ -185,13 +189,47 @@ final class AppModel: ObservableObject {
         await loadPairingInput(url.absoluteString)
     }
 
+    func beginHostedConnection() async {
+        guard !localCredentialCleanupPending else {
+            errorMessage = String(localized: "Finish removing the revoked local credential before connecting again.")
+            return
+        }
+        guard !isPaired, !isBusy else { return }
+        clearPendingPairing()
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+
+        do {
+            let link = try await transport.issuePublicAgentGrant(
+                baseURL: Self.hostedServiceURL,
+                agentName: String(localized: "FitKiku private ChatGPT link")
+            )
+            let preview = try await transport.previewAgentGrant(
+                baseURL: link.baseURL,
+                pairingToken: link.pairingToken
+            )
+            pendingAgentConsent = PendingAgentConsent(
+                baseURL: link.baseURL,
+                pairingToken: link.pairingToken,
+                preview: preview,
+                createsPrivateShareLink: true
+            )
+            statusMessage = String(localized: "Review the private read-only connection before approving.")
+        } catch {
+            clearPendingPairing()
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func loadPairingInput(_ value: String) async {
         guard !localCredentialCleanupPending else {
-            errorMessage = "Finish removing the revoked local credential before connecting again."
+            errorMessage = String(localized: "Finish removing the revoked local credential before connecting again.")
             return
         }
         guard !isPaired else {
-            errorMessage = "Disconnect the current server before opening another Pair Link."
+            errorMessage = String(localized: "Disconnect the current server before opening another Pair Link.")
             return
         }
         guard !isBusy else { return }
@@ -214,15 +252,16 @@ final class AppModel: ObservableObject {
                 pendingAgentConsent = PendingAgentConsent(
                     baseURL: link.baseURL,
                     pairingToken: link.pairingToken,
-                    preview: preview
+                    preview: preview,
+                    createsPrivateShareLink: false
                 )
-                statusMessage = "Review the claimed agent and disclosures before approving."
+                statusMessage = String(localized: "Review the claimed agent and disclosures before approving.")
             case let .legacy(link):
                 pendingLegacyPairing = PendingLegacyPairing(
                     baseURL: link.baseURL,
                     code: link.code
                 )
-                statusMessage = "A legacy recovery link was loaded. Review the server before pairing."
+                statusMessage = String(localized: "A legacy recovery link was loaded. Review the server before pairing.")
             }
         } catch {
             clearPendingPairing()
@@ -233,13 +272,13 @@ final class AppModel: ObservableObject {
     func cancelPendingPairing() {
         clearPendingPairing()
         errorMessage = nil
-        statusMessage = "Connection request cancelled."
+        statusMessage = String(localized: "Connection request cancelled.")
     }
 
     func approveAgentPairing() async {
         guard let consent = pendingAgentConsent else { return }
         guard let coordinator else {
-            errorMessage = setupError ?? "The native health client is unavailable."
+            errorMessage = setupError ?? String(localized: "The native health client is unavailable.")
             return
         }
         isBusy = true
@@ -264,7 +303,60 @@ final class AppModel: ObservableObject {
                 coordinator: coordinator
             )
             clearPendingPairing()
-            statusMessage = "Connected. You can now review and grant Apple Health read access."
+            if consent.createsPrivateShareLink {
+                do {
+                    try await rotatePrivateShareLinkUsingStoredDevice()
+                    statusMessage = String(localized: "Connected. Allow Apple Health next, then copy your private ChatGPT prompt.")
+                } catch {
+                    errorMessage = String(
+                        format: String(localized: "Connected, but the private ChatGPT link could not be created. Try again below. %@"),
+                        locale: Locale.current,
+                        error.localizedDescription
+                    )
+                }
+            } else {
+                statusMessage = String(localized: "Connected. You can now review and grant Apple Health read access.")
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func createPrivateShareLink() async {
+        guard isPaired, !isBusy else { return }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+        do {
+            try await rotatePrivateShareLinkUsingStoredDevice()
+            statusMessage = String(localized: "Private ChatGPT link created. Keep it private; anyone with it can read your recent Steps and Sleep.")
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func revokePrivateShareLink() async {
+        guard isPaired, privateShareURL != nil, !isBusy else { return }
+        isBusy = true
+        errorMessage = nil
+        statusMessage = nil
+        defer { isBusy = false }
+        do {
+            guard let credential = try keychain.credential() else {
+                throw APIClientError.invalidResponse
+            }
+            let baseURL = try APIClient.validatedBaseURL(serverAddress)
+            let installationID = try keychain.installationID()
+            let outcome = try await transport.revokeDeviceShareLink(
+                baseURL: baseURL,
+                credential: credential,
+                installationID: installationID
+            )
+            guard outcome == "revoked" else { throw APIClientError.invalidResponse }
+            privateShareURL = nil
+            try keychain.deletePrivateShareURL()
+            statusMessage = String(localized: "Private ChatGPT link revoked. The iPhone connection remains active.")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -280,7 +372,7 @@ final class AppModel: ObservableObject {
 
     func pairLegacyManually() async {
         guard !localCredentialCleanupPending else {
-            errorMessage = "Finish removing the revoked local credential before connecting again."
+            errorMessage = String(localized: "Finish removing the revoked local credential before connecting again.")
             return
         }
         do {
@@ -293,7 +385,7 @@ final class AppModel: ObservableObject {
 
     func requestHealthAccess() async {
         guard let health else {
-            errorMessage = setupError ?? "Apple Health is unavailable on this device."
+            errorMessage = setupError ?? String(localized: "Apple Health is unavailable on this device.")
             return
         }
         isBusy = true
@@ -304,8 +396,8 @@ final class AppModel: ObservableObject {
             healthAccessRequested = true
             defaults.set(true, forKey: DefaultsKey.healthAccessRequested)
             statusMessage = isPaired
-                ? "Health access was requested. Apple keeps read-denial status private."
-                : "Health access was requested. Connect a server later to sync."
+                ? String(localized: "Health access was requested. Apple keeps read-denial status private.")
+                : String(localized: "Health access was requested. Connect a server later to sync.")
             await registerObservers()
             await refreshSummaries()
             if isPaired {
@@ -319,7 +411,7 @@ final class AppModel: ObservableObject {
 
     func syncNow() async {
         guard isPaired, healthAccessRequested, let coordinator else {
-            errorMessage = "Connect the app and request Apple Health access before syncing."
+            errorMessage = String(localized: "Connect the app and request Apple Health access before syncing.")
             return
         }
         isBusy = true
@@ -334,18 +426,23 @@ final class AppModel: ObservableObject {
         let failures = results.filter { $0.outcome == .failed }
         let queued = results.filter { $0.outcome == .queued }
         if let failure = failures.first {
-            errorMessage = failure.message ?? "Sync failed."
+            errorMessage = failure.message ?? String(localized: "Sync failed.")
         } else if let firstQueued = queued.first {
             errorMessage = firstQueued.message
-                ?? "One or more days are queued on this iPhone and will be retried."
+                ?? String(localized: "One or more days are queued on this iPhone and will be retried.")
         } else if !results.isEmpty {
             let confirmedAt = Date()
             lastSyncAt = confirmedAt
             defaults.set(confirmedAt, forKey: DefaultsKey.lastSyncAt)
             let changed = results.filter { $0.outcome != .unchanged }.count
             statusMessage = changed == 0
-                ? "FitKiku is already up to date."
-                : "Checked \(results.count) Kyiv day(s); \(changed) confirmed by the server."
+                ? String(localized: "FitKiku is already up to date.")
+                : String(
+                    format: String(localized: "Server check: %@ days; %@ updates confirmed."),
+                    locale: Locale.current,
+                    String(results.count),
+                    String(changed)
+                )
         }
     }
 
@@ -377,8 +474,16 @@ final class AppModel: ObservableObject {
             installationID = try keychain.installationID()
         } catch {
             errorMessage = deleteServerData
-                ? "Server data was not deleted. This iPhone remains connected; try again. \(error.localizedDescription)"
-                : "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+                ? String(
+                    format: String(localized: "Server data was not deleted. This iPhone remains connected; try again. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
+                : String(
+                    format: String(localized: "Server access was not revoked. This iPhone remains connected; try again. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
             return
         }
 
@@ -405,8 +510,16 @@ final class AppModel: ObservableObject {
             }
         } catch {
             errorMessage = deleteServerData
-                ? "Server data was not deleted. This iPhone remains connected; try again. \(error.localizedDescription)"
-                : "Server access was not revoked. This iPhone remains connected; try again. \(error.localizedDescription)"
+                ? String(
+                    format: String(localized: "Server data was not deleted. This iPhone remains connected; try again. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
+                : String(
+                    format: String(localized: "Server access was not revoked. This iPhone remains connected; try again. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
             return
         }
 
@@ -420,17 +533,26 @@ final class AppModel: ObservableObject {
         lastSyncAt = nil
         deliveryStatus = nil
         deliveryStatusError = nil
+        privateShareURL = nil
         defaults.removeObject(forKey: DefaultsKey.lastSyncAt)
         do {
             try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
             statusMessage = deleteServerData
-                ? "FitKiku server data and local protected data were deleted. Apple Health was unchanged."
-                : "Server access was revoked and local protected data was removed."
+                ? String(localized: "FitKiku server data and local protected data were deleted. Apple Health was unchanged.")
+                : String(localized: "Server access was revoked and local protected data was removed.")
         } catch {
             errorMessage = deleteServerData
-                ? "FitKiku server data was deleted. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
-                : "Server access was revoked. Local protected-data cleanup is still pending; retry below. \(error.localizedDescription)"
+                ? String(
+                    format: String(localized: "FitKiku server data was deleted. Local protected-data cleanup is still pending; retry below. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
+                : String(
+                    format: String(localized: "Server access was revoked. Local protected-data cleanup is still pending; retry below. %@"),
+                    locale: Locale.current,
+                    error.localizedDescription
+                )
         }
     }
 
@@ -445,15 +567,19 @@ final class AppModel: ObservableObject {
         do {
             try await finishRevokedLocalCleanup()
             finishLocalCredentialCleanup()
-            statusMessage = "Local protected data for the ended connection was removed."
+            statusMessage = String(localized: "Local protected data for the ended connection was removed.")
         } catch {
-            errorMessage = "Server access has already ended, but local protected-data cleanup is still pending. \(error.localizedDescription)"
+            errorMessage = String(
+                format: String(localized: "Server access has already ended, but local protected-data cleanup is still pending. %@"),
+                locale: Locale.current,
+                error.localizedDescription
+            )
         }
     }
 
     private func pairLegacy(baseURL: URL, code: String) async {
         guard let coordinator else {
-            errorMessage = setupError ?? "The native health client is unavailable."
+            errorMessage = setupError ?? String(localized: "The native health client is unavailable.")
             return
         }
         isBusy = true
@@ -476,7 +602,7 @@ final class AppModel: ObservableObject {
             )
             pairingCode = ""
             clearPendingPairing()
-            statusMessage = "Connected through recovery setup. Review Apple Health access next."
+            statusMessage = String(localized: "Connected through recovery setup. Review Apple Health access next.")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -499,6 +625,8 @@ final class AppModel: ObservableObject {
             )
         )
         isPaired = true
+        privateShareURL = nil
+        try? keychain.deletePrivateShareURL()
         await refreshDeliveryStatus()
         if healthAccessRequested {
             await registerObservers()
@@ -530,13 +658,18 @@ final class AppModel: ObservableObject {
             )
             deliveryStatusError = nil
         } catch {
-            deliveryStatusError = "Delivery status is unavailable. \(error.localizedDescription)"
+            deliveryStatusError = String(
+                format: String(localized: "Delivery status is unavailable. %@"),
+                locale: Locale.current,
+                error.localizedDescription
+            )
         }
     }
 
     private func finishLocalCredentialCleanup() {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
         localCredentialCleanupPending = false
+        privateShareURL = nil
     }
 
     private func finishRevokedLocalCleanup() async throws {
@@ -550,6 +683,22 @@ final class AppModel: ObservableObject {
         }
         observersInstalled = false
         try deleteCredential()
+        try keychain.deletePrivateShareURL()
+    }
+
+    private func rotatePrivateShareLinkUsingStoredDevice() async throws {
+        guard let credential = try keychain.credential() else {
+            throw APIClientError.invalidResponse
+        }
+        let baseURL = try APIClient.validatedBaseURL(serverAddress)
+        let installationID = try keychain.installationID()
+        let shareURL = try await transport.rotateDeviceShareLink(
+            baseURL: baseURL,
+            credential: credential,
+            installationID: installationID
+        )
+        try keychain.savePrivateShareURL(shareURL)
+        privateShareURL = shareURL
     }
 
     private func registerObservers() async {
@@ -566,7 +715,7 @@ final class AppModel: ObservableObject {
             try await coordinator.enableBackgroundDelivery()
         } catch {
             observersInstalled = false
-            statusMessage = "Background delivery could not be registered. Manual sync remains available."
+            statusMessage = String(localized: "Background delivery could not be registered. Manual sync remains available.")
         }
     }
 
@@ -661,7 +810,7 @@ extension AppModel {
                 baseURL: URL(string: "https://health.example")!,
                 pairingToken: "synthetic-demo-token-not-a-credential",
                 preview: AgentGrantPreview(
-                    assertedAgentName: "Kiku Assistant",
+                    assertedAgentName: String(localized: "FitKiku private ChatGPT link"),
                     serverOrigin: "https://health.example",
                     scopes: [.steps, .sleep],
                     expiresAt: "2026-04-08T18:00:00Z",
@@ -670,30 +819,31 @@ extension AppModel {
                         + "Revoking stops future access but does not delete stored summaries.",
                     aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider.",
                     requiresTimezone: true
-                )
+                ),
+                createsPrivateShareLink: true
             )
         case .current:
             configureConnectedDemo(freshness: .current, partial: false)
-            statusMessage = "FitKiku is up to date."
+            statusMessage = String(localized: "FitKiku is up to date.")
         case .partial:
             configureConnectedDemo(freshness: .stale, partial: true)
             demoScrollTarget = "yesterday"
             shouldExpandDeliveryForDemo = true
-            statusMessage = "Recent delivery needs attention."
+            statusMessage = String(localized: "Recent delivery needs attention.")
         case .unavailable:
             configureConnectedDemo(freshness: .unknown, partial: false)
             demoScrollTarget = "yesterday"
             shouldExpandDeliveryForDemo = true
             deliveryStatus = nil
-            deliveryStatusError = "Delivery status is unavailable. Try again when you're online."
+            deliveryStatusError = String(localized: "Delivery status is unavailable. Try again when you're online.")
         case .revoked:
             localCredentialCleanupPending = true
-            statusMessage = "Server access is already revoked."
+            statusMessage = String(localized: "Server access is already revoked.")
         case .expired:
-            errorMessage = "This Pair Link has expired. Ask your agent for a new link."
+            errorMessage = String(localized: "This Pair Link has expired. Ask your agent for a new link.")
         case .healthEmpty:
             healthAccessRequested = true
-            statusMessage = "No Apple Health summary is available yet. Missing data stays Unknown."
+            statusMessage = String(localized: "No Apple Health summary is available yet. Missing data stays Unknown.")
         }
     }
 
@@ -705,6 +855,9 @@ extension AppModel {
         let previousDate = Date(timeIntervalSince1970: 1_775_513_600)
         serverAddress = "https://health.example"
         isPaired = true
+        privateShareURL = URL(
+            string: "https://kikuai.dev/fitkiku-health/demo-not-a-real-link"
+        )
         healthAccessRequested = true
         demoScrollTarget = "summaries"
         today = Self.syntheticSummary(
@@ -770,6 +923,10 @@ extension AppModel {
 }
 
 private struct SyntheticDemoTransport: AppTransport {
+    func issuePublicAgentGrant(baseURL _: URL, agentName _: String) async throws -> AgentPairingLink {
+        throw APIClientError.transport
+    }
+
     func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
         throw APIClientError.transport
     }
@@ -821,6 +978,22 @@ private struct SyntheticDemoTransport: AppTransport {
     ) async throws -> DeviceDeliveryStatus {
         throw APIClientError.transport
     }
+
+    func rotateDeviceShareLink(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> URL {
+        throw APIClientError.transport
+    }
+
+    func revokeDeviceShareLink(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> String {
+        throw APIClientError.transport
+    }
 }
 #endif
 
@@ -828,6 +1001,7 @@ struct PendingAgentConsent: Equatable, Sendable {
     let baseURL: URL
     let pairingToken: String
     let preview: AgentGrantPreview
+    let createsPrivateShareLink: Bool
 }
 
 struct PendingLegacyPairing: Equatable, Sendable {

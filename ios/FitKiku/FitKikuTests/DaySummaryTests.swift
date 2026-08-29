@@ -166,13 +166,24 @@ final class DaySummaryTests: XCTestCase {
         XCTAssertTrue(snapshot.sleepIntervals.isEmpty)
     }
 
-    func testConsentDisclosureNamesAggregateAndLocalIntervalBoundary() {
-        XCTAssertTrue(NativeHealthDisclosure.outbound.contains("asleep minutes"))
-        XCTAssertTrue(
-            NativeHealthDisclosure.outbound.contains(
-                "Sleep interval times and categories stay on this iPhone"
-            )
-        )
+    func testConsentDisclosureNamesAggregateAndLocalIntervalBoundary() throws {
+        let key =
+            "After Apple Health permission and sync, FitKiku sends this server daily Steps, asleep minutes, coverage, and Health source details. "
+                + "Sleep interval times and categories stay on this iPhone."
+        let englishBundle = try localizedBundle(language: "en")
+        let russianBundle = try localizedBundle(language: "ru")
+        let english = englishBundle.localizedString(forKey: key, value: nil, table: nil)
+        let russian = russianBundle.localizedString(forKey: key, value: nil, table: nil)
+
+        XCTAssertTrue(english.contains("asleep minutes"))
+        XCTAssertTrue(english.contains("Sleep interval times and categories stay on this iPhone"))
+        XCTAssertTrue(russian.contains("минутах сна"))
+        XCTAssertTrue(russian.contains("остаются на этом iPhone"))
+    }
+
+    private func localizedBundle(language: String) throws -> Bundle {
+        let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"))
+        return try XCTUnwrap(Bundle(path: path))
     }
 
     func testSleepSamplesAreAssignedByKyivWakeDate() throws {

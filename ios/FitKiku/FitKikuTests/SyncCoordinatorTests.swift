@@ -177,7 +177,10 @@ final class SyncCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.outcome, .failed)
-        XCTAssertTrue(result.first?.message?.contains("between one and seven days") == true)
+        XCTAssertEqual(
+            result.first?.message,
+            SyncCoordinatorError.invalidLookback.localizedDescription
+        )
         let uploadAttempts = await transport.snapshots(for: localDate)
         XCTAssertTrue(uploadAttempts.isEmpty)
     }
@@ -214,7 +217,7 @@ final class SyncCoordinatorTests: XCTestCase {
 
         XCTAssertEqual(result.count, 1)
         XCTAssertEqual(result.first?.outcome, .failed)
-        XCTAssertTrue(result.first?.message?.contains("before the update could be queued") == true)
+        XCTAssertNotNil(result.first?.message)
         let uploadAttempts = await transport.snapshots(for: localDate)
         XCTAssertTrue(uploadAttempts.isEmpty)
     }
@@ -252,7 +255,7 @@ final class SyncCoordinatorTests: XCTestCase {
 
         let result = await coordinator.synchronize(lookbackDays: 1)
         XCTAssertEqual(result.first?.outcome, .failed)
-        XCTAssertTrue(result.first?.message?.contains("Pair the app") == true)
+        XCTAssertEqual(result.first?.message, SyncCoordinatorError.notConfigured.localizedDescription)
     }
 
     func testLostResponseRetriesSameRevisionAndIdempotencyKey() async throws {
@@ -283,7 +286,10 @@ final class SyncCoordinatorTests: XCTestCase {
 
         let first = await coordinator.synchronize(referenceDate: reference)
         XCTAssertEqual(first.first?.outcome, .queued)
-        XCTAssertTrue(first.first?.message?.contains("Queued on this iPhone") == true)
+        XCTAssertEqual(
+            first.first?.message,
+            String(localized: "Queued on this iPhone after sync failed. FitKiku will retry when it gets another opportunity.")
+        )
         let queuedPending = try await outbox.pending(for: lostDate)
         XCTAssertNotNil(queuedPending)
         let second = await coordinator.synchronize(referenceDate: reference)

@@ -10,11 +10,11 @@ FitKiku is an Apple Health connector for personal AI agents. Its native iPhone
 app gives an agent you approve recent, read-only Apple Health context after
 explicit user approval.
 
-The current product reads only daily Steps and Sleep. It shows the destination
-before connection, keeps unknown or partial coverage visible, reports delivery
-freshness, and lets the user revoke future access. The version 1.0 source
-also supports isolated anonymous guest pairing and authenticated in-app account
-deletion without modifying Apple Health.
+The current product reads only daily Steps and Sleep. Released version 1.0
+supports explicit agent pairing, visible delivery freshness, revocation, and
+anonymous in-app account deletion without modifying Apple Health. The next 1.1
+source candidate replaces the normal pairing ceremony with one app-created,
+private, revocable link and a prepared message for ChatGPT.
 
 ## Current status
 
@@ -28,7 +28,8 @@ external retention, broad agent compatibility, demand, or payment.
 Proved so far:
 
 - native HealthKit authorization and foreground reads on a physical iPhone;
-- explicit Pair Link review before device pairing;
+- explicit Pair Link review before device pairing, retained as an advanced
+  compatibility flow;
 - signed daily aggregate delivery and server confirmation;
 - bounded read-only agent access and revocation;
 - sleep attribution by the Europe/Kyiv wake date, including exclusion of
@@ -45,14 +46,15 @@ Proved so far:
 - background work requests HealthKit's earliest supported opportunity but is
   bounded to two local days, one upload attempt per day, and an exactly-once
   completion deadline;
-- 68 deterministic simulator tests for pairing, storage, canonical JSON,
-  retries, coverage, freshness, cold launch, and malformed responses;
+- 74 deterministic simulator tests in both English and Russian for pairing,
+  private-link rotation and revocation, storage, canonical JSON, retries,
+  coverage, freshness, cold launch, and malformed responses;
 - a real owner-iPhone foreground catch-up from stale state through current
   server confirmation and a bounded existing-agent read;
 - live anonymous grant issuance with a credential-free Pair Link, denied reads
   before approval, agent self-revocation, and denied reads afterward;
-- a machine-readable setup protocol that a capable HTTPS agent can follow
-  without asking the person for a server URL, password, or API token.
+- an app-led ChatGPT flow that asks for no server URL, password, Pair Link, or
+  setup code, plus a machine-readable protocol for compatible advanced agents.
 
 Still unproved for a public reliability claim:
 
@@ -61,25 +63,34 @@ Still unproved for a public reliability claim:
 - locale-dynamic daily grouping; release 1.0 uses the `Europe/Kyiv` day
   boundary for all summaries;
 - onboarding and retention with people outside the owner setup;
-- an unaided external person's install -> Pair Link -> current answer flow;
+- an unaided external person's install -> private link -> current answer flow;
 - demand or payment for an optional hosted gateway.
 
 The iPhone companion is intended to remain free. An optional managed hosted
 gateway is a later validation candidate, not a currently available service;
 this repository contains no checkout or active subscription flow.
 
-## Connect an agent
+## Connect ChatGPT
 
-Send this setup prompt to your AI agent:
+In the 1.1 source candidate, the normal flow happens inside the iPhone app:
 
-```text
-Use FitKiku (https://kikuai.dev/fitkiku/) to connect my Apple Health Steps and Sleep to this agent. If you have a compatible FitKiku connection, return a FitKiku Pair Link for this iPhone. If not, say clearly that you cannot connect yet. Do not ask me for server passwords, API tokens, or a manual Apple Health export.
-```
+1. Tap **Connect ChatGPT**.
+2. Review the read-only Steps and Sleep scope and create the connection.
+3. Allow Steps and Sleep in Apple Health.
+4. Tap **Copy for ChatGPT** and paste the complete prepared message into a
+   private ChatGPT chat.
 
-FitKiku currently works only through compatible FitKiku connections. It does
-not yet support every AI agent or runtime. Capable agents can follow the exact
-bounded protocol at <https://kikuai.dev/fitkiku.md>; agents that cannot make
-HTTPS requests and securely store one bearer must fail honestly.
+The prepared message already contains the user's actual private URL. It tells
+ChatGPT to open that normal HTTPS JSON URL again before each health-related
+answer, report freshness, preserve missing values as unknown, and never repeat
+the URL. No native FitKiku connector or Pair Link is required for this path;
+the chat only needs the ability to open HTTPS links.
+
+The URL is a bearer credential. Anyone who receives it can read the bounded
+recent summary until the user replaces or revokes the link in FitKiku Settings.
+This is pull-on-request over the latest server-confirmed snapshot after iOS has
+synced, not continuous real-time delivery. Advanced agents can still follow the
+bounded protocol at <https://kikuai.dev/fitkiku.md>.
 
 ## Data boundary
 
@@ -137,6 +148,11 @@ analysis, archive inspection, and the physical reviewer flow. The earlier
 fixed server-first window was closed without enough elapsed evidence;
 unattended regularity remains inconclusive and stays in the validation list
 above rather than being presented as guaranteed.
+
+The next 1.1 (4) source candidate passes 74/74 Simulator tests in English and
+74/74 in Russian. Its exact production deployment, physical ordinary-ChatGPT
+fetch/revoke sequence, signed archive, upload, Apple review, and release remain
+separate gates.
 
 The 1.0 connection flow uses the registered `fitkiku-health://` custom URL
 scheme. The client also parses a future exact

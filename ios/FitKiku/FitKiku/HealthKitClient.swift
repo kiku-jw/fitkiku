@@ -10,9 +10,9 @@ enum HealthKitClientError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .unavailable:
-            "Apple Health is not available on this device."
+            String(localized: "Apple Health is not available on this device.")
         case .authorizationFailed:
-            "Apple Health access could not be requested."
+            String(localized: "Apple Health access could not be requested.")
         }
     }
 }

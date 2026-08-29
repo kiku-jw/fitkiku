@@ -10,9 +10,9 @@ enum SecureStoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .keychain:
-            "Secure storage is unavailable on this device. FitKiku cannot connect until it is available."
+            String(localized: "Secure storage is unavailable on this device. FitKiku cannot connect until it is available.")
         case .invalidStoredValue:
-            "Secure storage could not be read. Disconnect and connect FitKiku again."
+            String(localized: "Secure storage could not be read. Disconnect and connect FitKiku again.")
         }
     }
 }
@@ -21,6 +21,7 @@ struct KeychainStore: Sendable {
     private let service: String
     private let credentialAccount = "healthkit-device-credential"
     private let installationAccount = "healthkit-installation-id"
+    private let privateShareURLAccount = "healthkit-private-share-url"
 
     init(service: String = "com.kikuai.fitkiku.health") {
         self.service = service
@@ -45,6 +46,23 @@ struct KeychainStore: Sendable {
 
     func deleteCredential() throws {
         let status = SecItemDelete(query(account: credentialAccount) as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw SecureStoreError.keychain(status)
+        }
+    }
+
+    func privateShareURL() throws -> URL? {
+        guard let value = try load(account: privateShareURLAccount) else { return nil }
+        guard let url = URL(string: value) else { throw SecureStoreError.invalidStoredValue }
+        return url
+    }
+
+    func savePrivateShareURL(_ url: URL) throws {
+        try save(url.absoluteString, account: privateShareURLAccount)
+    }
+
+    func deletePrivateShareURL() throws {
+        let status = SecItemDelete(query(account: privateShareURLAccount) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw SecureStoreError.keychain(status)
         }

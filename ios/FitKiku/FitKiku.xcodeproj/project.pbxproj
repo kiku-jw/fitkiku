@@ -52,7 +52,8 @@
 		20000000000000000000000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		20000000000000000000000D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		20000000000000000000000E /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
-		20000000000000000000000F /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		200000000000000000000012 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		200000000000000000000013 /* ru */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ru; path = ru.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		210000000000000000000001 /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
 		210000000000000000000002 /* CanonicalJSONTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanonicalJSONTests.swift; sourceTree = "<group>"; };
 		210000000000000000000003 /* DaySummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaySummaryTests.swift; sourceTree = "<group>"; };
@@ -173,7 +174,7 @@
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (en, ru, Base);
 			mainGroup = 700000000000000000000001;
 			productRefGroup = 700000000000000000000004 /* Products */;
 			projectDirPath = "";
@@ -218,6 +219,18 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXVariantGroup section */
+		20000000000000000000000F /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				200000000000000000000012 /* en */,
+				200000000000000000000013 /* ru */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
 /* Begin PBXTargetDependency section */
 		B00000000000000000000001 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = 500000000000000000000001 /* FitKiku */; targetProxy = 300000000000000000000001 /* PBXContainerItemProxy */; };
 /* End PBXTargetDependency section */
@@ -248,12 +261,12 @@
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			CODE_SIGN_ENTITLEMENTS = FitKiku/FitKiku.entitlements;
 			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 3;
+			CURRENT_PROJECT_VERSION = 4;
 			GENERATE_INFOPLIST_FILE = NO;
 			INFOPLIST_FILE = FitKiku/Info.plist;
 			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 			LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-			MARKETING_VERSION = 1.0;
+			MARKETING_VERSION = 1.1;
 			PRODUCT_BUNDLE_IDENTIFIER = com.kikuai.fitkiku.health;
 			PRODUCT_NAME = "$(TARGET_NAME)";
 			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -265,12 +278,12 @@
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			CODE_SIGN_ENTITLEMENTS = FitKiku/FitKiku.entitlements;
 			CODE_SIGN_STYLE = Automatic;
-			CURRENT_PROJECT_VERSION = 3;
+			CURRENT_PROJECT_VERSION = 4;
 			GENERATE_INFOPLIST_FILE = NO;
 			INFOPLIST_FILE = FitKiku/Info.plist;
 			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 			LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-			MARKETING_VERSION = 1.0;
+			MARKETING_VERSION = 1.1;
 			PRODUCT_BUNDLE_IDENTIFIER = com.kikuai.fitkiku.health;
 			PRODUCT_NAME = "$(TARGET_NAME)";
 			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

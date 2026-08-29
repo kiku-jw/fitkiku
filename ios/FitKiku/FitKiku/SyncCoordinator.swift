@@ -11,13 +11,13 @@ enum SyncCoordinatorError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notConfigured:
-            "Pair the app before syncing."
+            String(localized: "Pair the app before syncing.")
         case .invalidLookback:
-            "Sync history must be between one and seven days."
+            String(localized: "Sync history must be between one and seven days.")
         case .invalidUploadAttempts:
-            "Upload attempts must be between one and ten."
+            String(localized: "Upload attempts must be between one and ten.")
         case .unexpectedOutcome:
-            "The server could not confirm the daily update."
+            String(localized: "The server could not confirm the daily update.")
         }
     }
 }
@@ -186,8 +186,8 @@ actor SyncCoordinator {
                 localDate: localDate,
                 outcome: queued ? .queued : .failed,
                 message: queued
-                    ? "Queued on this iPhone after sync failed. FitKiku will retry when it gets another opportunity."
-                    : "Sync failed before the update could be queued. Open FitKiku and try again."
+                    ? String(localized: "Queued on this iPhone after sync failed. FitKiku will retry when it gets another opportunity.")
+                    : String(localized: "Sync failed before the update could be queued. Open FitKiku and try again.")
             )
         }
     }

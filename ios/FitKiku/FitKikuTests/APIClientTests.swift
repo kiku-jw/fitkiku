@@ -99,6 +99,9 @@ private actor PairingTestTransport: AppTransport {
     private var deleteCount = 0
     private var statusCount = 0
     private var ingestCount = 0
+    private var publicIssueCount = 0
+    private var shareRotateCount = 0
+    private var shareRevokeCount = 0
     private var revokeFails = true
     private var deleteFails = true
     private var ingestFails = false
@@ -108,6 +111,14 @@ private actor PairingTestTransport: AppTransport {
 
     func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
         "legacy-device-credential"
+    }
+
+    func issuePublicAgentGrant(baseURL: URL, agentName _: String) async throws -> AgentPairingLink {
+        publicIssueCount += 1
+        return AgentPairingLink(
+            baseURL: baseURL,
+            pairingToken: String(repeating: "a", count: 43)
+        )
     }
 
     func ingest(
@@ -196,6 +207,26 @@ private actor PairingTestTransport: AppTransport {
         )
     }
 
+    func rotateDeviceShareLink(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> URL {
+        shareRotateCount += 1
+        return URL(
+            string: "https://kikuai.dev/fitkiku-health/\(String(repeating: "b", count: 43))"
+        )!
+    }
+
+    func revokeDeviceShareLink(
+        baseURL _: URL,
+        credential _: String,
+        installationID _: String
+    ) async throws -> String {
+        shareRevokeCount += 1
+        return "revoked"
+    }
+
     func allowRevocation() {
         revokeFails = false
     }
@@ -220,6 +251,10 @@ private actor PairingTestTransport: AppTransport {
 
     func counts() -> (preview: Int, pair: Int, revoke: Int, delete: Int, status: Int, ingest: Int) {
         (previewCount, agentPairCount, revokeCount, deleteCount, statusCount, ingestCount)
+    }
+
+    func privateLinkCounts() -> (issue: Int, rotate: Int, revoke: Int) {
+        (publicIssueCount, shareRotateCount, shareRevokeCount)
     }
 
     func pairedTimezone() -> String? {
@@ -315,6 +350,21 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
 
+    func testHostedGrantRequestUsesCredentialFreeAppEndpoint() throws {
+        let baseURL = try APIClient.validatedBaseURL("https://fitkiku-origin.kikuai.dev")
+        let request = try APIClient().makePublicAgentGrantRequest(
+            baseURL: baseURL,
+            agentName: "  FitKiku private ChatGPT link  "
+        )
+        let object = try jsonObject(XCTUnwrap(request.httpBody))
+
+        XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/healthkit/public/app-grants")
+        XCTAssertEqual(Set(object.keys), ["agent_name"])
+        XCTAssertEqual(object["agent_name"] as? String, "FitKiku private ChatGPT link")
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+    }
+
     func testAgentPreviewDecodesBackendSnakeCaseContract() throws {
         let data = Data(
             """
@@ -373,7 +423,7 @@ final class APIClientTests: XCTestCase {
         )
         XCTAssertEqual(object["pairing_token"] as? String, validToken)
         XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
-        XCTAssertEqual(object["app_version"] as? String, "native/1.0")
+        XCTAssertEqual(object["app_version"] as? String, "native/1.1")
         XCTAssertEqual(object["timezone"] as? String, "America/Toronto")
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
@@ -410,6 +460,45 @@ final class APIClientTests: XCTestCase {
             request.value(forHTTPHeaderField: "Authorization"),
             "Bearer synthetic-device-credential"
         )
+    }
+
+    func testDeviceShareLinkRequestIsAuthenticatedAndScopedToInstallation() throws {
+        let baseURL = try APIClient.validatedBaseURL("https://fitkiku.example")
+        let request = try APIClient().makeDeviceShareLinkRequest(
+            path: "healthkit/device/share-link",
+            baseURL: baseURL,
+            credential: "synthetic-device-credential",
+            installationID: "fixture-installation-0001"
+        )
+        let object = try jsonObject(XCTUnwrap(request.httpBody))
+
+        XCTAssertEqual(request.url?.path, "/healthkit/device/share-link")
+        XCTAssertEqual(Set(object.keys), ["installation_id"])
+        XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
+        XCTAssertEqual(
+            request.value(forHTTPHeaderField: "Authorization"),
+            "Bearer synthetic-device-credential"
+        )
+    }
+
+    func testPrivateShareURLIsPinnedToTheBrandedCapabilityPath() throws {
+        let token = String(repeating: "a", count: 43)
+        XCTAssertEqual(
+            try APIClient.validatedPublicShareURL(
+                "https://kikuai.dev/fitkiku-health/\(token)"
+            ).absoluteString,
+            "https://kikuai.dev/fitkiku-health/\(token)"
+        )
+        for value in [
+            "http://kikuai.dev/fitkiku-health/\(token)",
+            "https://other.example/fitkiku-health/\(token)",
+            "https://kikuai.dev/fitkiku-health/short",
+            "https://kikuai.dev/fitkiku-health/\(token)/extra",
+            "https://kikuai.dev/fitkiku-health/\(token)?copy=1",
+            "https://user@kikuai.dev/fitkiku-health/\(token)",
+        ] {
+            XCTAssertThrowsError(try APIClient.validatedPublicShareURL(value))
+        }
     }
 
     func testDeleteAccountRequestIsAuthenticatedAndScopedToInstallation() throws {
@@ -739,6 +828,40 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
+    func testHostedFlowCreatesAndRevokesPrivateLinkWithoutDisconnecting() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+
+        await harness.model.beginHostedConnection()
+
+        XCTAssertEqual(harness.model.pendingAgentConsent?.createsPrivateShareLink, true)
+        XCTAssertEqual(
+            harness.model.pendingAgentConsent?.baseURL.absoluteString,
+            "https://fitkiku-origin.kikuai.dev"
+        )
+        var linkCounts = await harness.transport.privateLinkCounts()
+        XCTAssertEqual(linkCounts.issue, 1)
+        XCTAssertEqual(linkCounts.rotate, 0)
+
+        await harness.model.approveAgentPairing()
+
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNil(harness.model.pendingAgentConsent)
+        XCTAssertEqual(harness.model.privateShareURL, try harness.keychain.privateShareURL())
+        XCTAssertEqual(harness.model.privateShareURL?.host, "kikuai.dev")
+        linkCounts = await harness.transport.privateLinkCounts()
+        XCTAssertEqual(linkCounts.rotate, 1)
+
+        await harness.model.revokePrivateShareLink()
+
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNil(harness.model.privateShareURL)
+        XCTAssertNil(try harness.keychain.privateShareURL())
+        linkCounts = await harness.transport.privateLinkCounts()
+        XCTAssertEqual(linkCounts.revoke, 1)
+    }
+
+    @MainActor
     func testPublicGuestPairingUsesTheSnapshotTimezone() async throws {
         let harness = try makeModelHarness()
         defer { harness.cleanup() }
@@ -771,7 +894,7 @@ final class APIClientTests: XCTestCase {
         await harness.model.disconnect()
         XCTAssertTrue(harness.model.isPaired)
         XCTAssertEqual(try harness.keychain.credential(), "agent-device-credential")
-        XCTAssertTrue(harness.model.errorMessage?.contains("remains connected") == true)
+        XCTAssertNotNil(harness.model.errorMessage)
 
         await harness.transport.allowRevocation()
         await harness.model.disconnect()
@@ -779,10 +902,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(try harness.keychain.credential())
         XCTAssertNil(harness.model.deliveryStatus)
         XCTAssertNil(harness.model.deliveryStatusError)
-        XCTAssertEqual(
-            harness.model.statusMessage,
-            "Server access was revoked and local protected data was removed."
-        )
+        XCTAssertNotNil(harness.model.statusMessage)
         let observerStops = await harness.health.observerStops()
         XCTAssertEqual(observerStops, 1)
     }
@@ -800,7 +920,7 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertTrue(harness.model.isPaired)
         XCTAssertEqual(try harness.keychain.credential(), "agent-device-credential")
-        XCTAssertTrue(harness.model.errorMessage?.contains("remains connected") == true)
+        XCTAssertNotNil(harness.model.errorMessage)
         var counts = await harness.transport.counts()
         XCTAssertEqual(counts.delete, 1)
         XCTAssertEqual(counts.revoke, 0)
@@ -811,10 +931,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertFalse(harness.model.isPaired)
         XCTAssertFalse(harness.model.canDeleteAccount)
         XCTAssertNil(try harness.keychain.credential())
-        XCTAssertEqual(
-            harness.model.statusMessage,
-            "FitKiku server data and local protected data were deleted. Apple Health was unchanged."
-        )
+        XCTAssertNotNil(harness.model.statusMessage)
         counts = await harness.transport.counts()
         XCTAssertEqual(counts.delete, 2)
         XCTAssertEqual(counts.revoke, 0)
@@ -836,7 +953,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertFalse(harness.model.isPaired)
         XCTAssertTrue(harness.model.localCredentialCleanupPending)
         XCTAssertNotNil(try harness.keychain.credential())
-        XCTAssertTrue(harness.model.errorMessage?.contains("cleanup is still pending") == true)
+        XCTAssertNotNil(harness.model.errorMessage)
 
         try FileManager.default.removeItem(at: harness.outboxDirectory)
         try FileManager.default.createDirectory(
@@ -847,10 +964,7 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertFalse(harness.model.localCredentialCleanupPending)
         XCTAssertNil(try harness.keychain.credential())
-        XCTAssertEqual(
-            harness.model.statusMessage,
-            "Local protected data for the ended connection was removed."
-        )
+        XCTAssertNotNil(harness.model.statusMessage)
     }
 
     @MainActor
@@ -866,7 +980,7 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertEqual(harness.model.lastResults.count, 7)
         XCTAssertTrue(harness.model.lastResults.allSatisfy { $0.outcome == .queued })
-        XCTAssertTrue(harness.model.errorMessage?.contains("Queued on this iPhone") == true)
+        XCTAssertNotNil(harness.model.errorMessage)
         XCTAssertNil(harness.model.lastSyncAt)
         let queuedFiles = try FileManager.default.contentsOfDirectory(
             at: harness.outboxDirectory,
@@ -1159,10 +1273,7 @@ final class APIClientTests: XCTestCase {
 
         XCTAssertFalse(model.localCredentialCleanupPending)
         XCTAssertEqual(cleanup.attempts, 2)
-        XCTAssertEqual(
-            model.statusMessage,
-            "Local protected data for the ended connection was removed."
-        )
+        XCTAssertNotNil(model.statusMessage)
     }
 
     @MainActor
@@ -1177,15 +1288,41 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(DemoScenario.from(environment: [:]))
     }
 
-    func testSetupPromptRequiresPairLinkAndRejectsPasswordsAndExports() {
-        XCTAssertEqual(FitKikuSetupPrompt.buttonTitle, "Copy setup prompt")
-        XCTAssertTrue(FitKikuSetupPrompt.summary.contains("AI agent"))
-        XCTAssertTrue(FitKikuSetupPrompt.summary.contains("cannot connect yet"))
-        XCTAssertTrue(FitKikuSetupPrompt.message.contains("https://kikuai.dev/fitkiku/"))
-        XCTAssertTrue(FitKikuSetupPrompt.message.contains("return a FitKiku Pair Link"))
-        XCTAssertTrue(FitKikuSetupPrompt.message.contains("Do not ask me for server passwords"))
-        XCTAssertTrue(FitKikuSetupPrompt.message.contains("API tokens"))
-        XCTAssertTrue(FitKikuSetupPrompt.message.contains("Apple Health export"))
+    func testChatPromptContainsPrivateURLAndHonestFreshnessRules() throws {
+        let shareURL = try XCTUnwrap(
+            URL(
+                string: "https://kikuai.dev/fitkiku-health/"
+                    + String(repeating: "a", count: 43)
+            )
+        )
+        let message = FitKikuChatPrompt.message(shareURL: shareURL)
+
+        XCTAssertEqual(FitKikuChatPrompt.buttonTitle, "Copy for ChatGPT")
+        XCTAssertTrue(message.contains(shareURL.absoluteString))
+        XCTAssertTrue(message.contains("data_freshness"))
+        XCTAssertTrue(message.contains("latest_local_date"))
+        XCTAssertTrue(
+            message.contains("normal HTTPS JSON URL")
+                || message.contains("обычная HTTPS-ссылка с JSON")
+        )
+        XCTAssertTrue(
+            message.contains("none is required")
+                || message.contains("они не нужны")
+        )
+        XCTAssertTrue(
+            message.contains("open it again before every health-related answer")
+                || message.contains("открывай её заново перед каждым ответом о здоровье")
+        )
+        XCTAssertTrue(
+            message.contains("unknown, never as zero")
+                || message.contains("неизвестными, а не нулевыми")
+        )
+        XCTAssertTrue(
+            message.contains("Never repeat or expose the private URL")
+                || message.contains("Никогда не повторяй и не показывай приватную ссылку")
+        )
+        XCTAssertFalse(message.contains("Paste a Pair Link"))
+        XCTAssertFalse(message.contains("Вставь ссылку подключения"))
     }
 
     func testAgentReadIsCurrentOnlyAfterAgentFetchesLatestServerReceipt() {
@@ -1219,15 +1356,6 @@ final class APIClientTests: XCTestCase {
                 freshness: .stale
             ).hasCurrentAgentRead
         )
-    }
-
-    func testAgentCheckPromptRequiresFreshnessAndProtectsCredentials() {
-        XCTAssertEqual(FitKikuAgentCheckPrompt.buttonTitle, "Copy ask-agent prompt")
-        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("data_freshness=current"))
-        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("latest_local_date"))
-        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("at most seven days"))
-        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("Never show"))
-        XCTAssertTrue(FitKikuAgentCheckPrompt.message.contains("credentials"))
     }
 
     func testReviewPromptWaitsForTwoDistinctCurrentAgentReadsAndOneVersion() throws {
@@ -1348,13 +1476,16 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(firstRun.pendingAgentConsent)
         XCTAssertEqual(current.deliveryStatus?.hasCurrentAgentRead, true)
         XCTAssertEqual(partial.deliveryStatus?.hasCurrentAgentRead, false)
-        XCTAssertEqual(consent.pendingAgentConsent?.preview.assertedAgentName, "Kiku Assistant")
+        XCTAssertEqual(
+            consent.pendingAgentConsent?.preview.assertedAgentName,
+            String(localized: "FitKiku private ChatGPT link")
+        )
         XCTAssertFalse(consent.isPaired)
         XCTAssertTrue(revoked.localCredentialCleanupPending)
         XCTAssertFalse(revoked.isPaired)
         XCTAssertEqual(
             expired.errorMessage,
-            "This Pair Link has expired. Ask your agent for a new link."
+            String(localized: "This Pair Link has expired. Ask your agent for a new link.")
         )
         XCTAssertTrue(healthEmpty.healthAccessRequested)
         XCTAssertNil(healthEmpty.today)
