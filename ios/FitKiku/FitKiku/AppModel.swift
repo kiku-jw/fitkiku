@@ -204,7 +204,7 @@ final class AppModel: ObservableObject {
         do {
             let link = try await transport.issuePublicAgentGrant(
                 baseURL: Self.hostedServiceURL,
-                agentName: String(localized: "FitKiku private ChatGPT link")
+                agentName: String(localized: "FitKiku private AI link")
             )
             let preview = try await transport.previewAgentGrant(
                 baseURL: link.baseURL,
@@ -306,10 +306,10 @@ final class AppModel: ObservableObject {
             if consent.createsPrivateShareLink {
                 do {
                     try await rotatePrivateShareLinkUsingStoredDevice()
-                    statusMessage = String(localized: "Connected. Allow Apple Health next, then copy your private ChatGPT prompt.")
+                    statusMessage = String(localized: "Connected. Allow Apple Health next, then copy the prepared message for your AI.")
                 } catch {
                     errorMessage = String(
-                        format: String(localized: "Connected, but the private ChatGPT link could not be created. Try again below. %@"),
+                        format: String(localized: "Connected, but the private AI link could not be created. Try again below. %@"),
                         locale: Locale.current,
                         error.localizedDescription
                     )
@@ -330,7 +330,7 @@ final class AppModel: ObservableObject {
         defer { isBusy = false }
         do {
             try await rotatePrivateShareLinkUsingStoredDevice()
-            statusMessage = String(localized: "Private ChatGPT link created. Keep it private; anyone with it can read your recent Steps and Sleep.")
+            statusMessage = String(localized: "Private AI link created. Keep it private; anyone with it can read your recent Steps and Sleep.")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -356,7 +356,7 @@ final class AppModel: ObservableObject {
             guard outcome == "revoked" else { throw APIClientError.invalidResponse }
             privateShareURL = nil
             try keychain.deletePrivateShareURL()
-            statusMessage = String(localized: "Private ChatGPT link revoked. The iPhone connection remains active.")
+            statusMessage = String(localized: "Private AI link revoked. The iPhone connection remains active.")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -810,7 +810,7 @@ extension AppModel {
                 baseURL: URL(string: "https://health.example")!,
                 pairingToken: "synthetic-demo-token-not-a-credential",
                 preview: AgentGrantPreview(
-                    assertedAgentName: String(localized: "FitKiku private ChatGPT link"),
+                    assertedAgentName: String(localized: "FitKiku private AI link"),
                     serverOrigin: "https://health.example",
                     scopes: [.steps, .sleep],
                     expiresAt: "2026-04-08T18:00:00Z",

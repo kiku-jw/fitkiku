@@ -107,9 +107,9 @@ struct ContentView: View {
                 .font(.system(size: 36, weight: .semibold))
                 .foregroundStyle(.teal)
                 .accessibilityHidden(true)
-            Text("Your health, ready for ChatGPT")
+            Text("Let your AI use your steps and sleep")
                 .font(.title.bold())
-            Text("FitKiku keeps recent Steps and Sleep behind one private, read-only link. You decide when to share or revoke it.")
+            Text("FitKiku privately brings recent Steps and Sleep to ChatGPT or another AI that can open links. No daily retyping. Revoke access anytime.")
             .font(.body)
             .foregroundStyle(Color.fitKikuSecondaryText)
         }
@@ -132,7 +132,7 @@ struct ContentView: View {
                 } else if let recovery = model.pendingLegacyPairing {
                     legacyConsentCard(recovery)
                 } else {
-                    Text("FitKiku creates a private link. Then allow Steps and Sleep and copy one prepared message into ChatGPT.")
+                    Text("FitKiku creates your private read-only link. Approve Steps and Sleep, then copy one prepared message into ChatGPT.")
                         .foregroundStyle(Color.fitKikuSecondaryText)
 
                     Button {
@@ -274,7 +274,7 @@ struct ContentView: View {
                 DisclosureGroup("Privacy details") {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(NativeHealthDisclosure.outbound)
-                        Text("Only after you paste or share the prepared prompt. ChatGPT may retain the link and returned summary under its own policy.")
+                        Text("Only after you paste or share the prepared message. The AI service may retain the link and returned summary under its own policy.")
                     }
                     .font(.footnote)
                     .foregroundStyle(Color.fitKikuSecondaryText)
@@ -407,14 +407,14 @@ struct ContentView: View {
         card {
             VStack(alignment: .leading, spacing: 14) {
                 sectionHeader(
-                    title: "Use with ChatGPT",
+                    title: "Use with your AI",
                     detail: model.privateShareURL == nil ? "One tap" : "Ready",
                     systemImage: "message.fill",
                     tint: .teal
                 )
 
                 if let shareURL = model.privateShareURL {
-                    Text("Copy one prepared message into an ordinary ChatGPT chat. It includes your private link and asks ChatGPT to fetch it again for every health answer.")
+                    Text("Copy the prepared message into ChatGPT, or share it with another AI that can open links. It includes your private link and requires a fresh read before relevant answers.")
                     .foregroundStyle(Color.fitKikuSecondaryText)
 
                     Button {
@@ -589,7 +589,7 @@ struct ContentView: View {
                         .buttonStyle(.bordered)
 
                         ShareLink(item: FitKikuChatPrompt.message(shareURL: shareURL)) {
-                            actionLabel("Share with ChatGPT", systemImage: "square.and.arrow.up")
+                            actionLabel("Share with your AI", systemImage: "square.and.arrow.up")
                         }
                         .buttonStyle(.bordered)
 
@@ -833,8 +833,8 @@ struct ContentView: View {
         switch delivery.dataFreshness {
         case .current:
             return delivery.hasCurrentAgentRead
-                ? String(localized: "ChatGPT or another approved agent fetched the latest server update.")
-                : String(localized: "Recent Steps and Sleep reached FitKiku. Paste your prepared prompt when you want ChatGPT to read them.")
+                ? String(localized: "An approved AI fetched the latest server update.")
+                : String(localized: "Recent Steps and Sleep reached FitKiku. Paste the prepared message when you want your AI to read them.")
         case .stale:
             return String(localized: "Daily Steps and Sleep are connected, but some recent delivery still needs attention.")
         case .unknown:
@@ -875,7 +875,7 @@ enum FitKikuChatPrompt {
     static func message(shareURL: URL) -> String {
         let format = NSLocalizedString(
             "fitkiku.chatgpt.prompt",
-            value: "Open this private FitKiku URL now, and open it again before every health-related answer:\n%@\n\nThis is a normal HTTPS JSON URL. Do not look for a FitKiku connector or Pair Link; none is required. Use only the Steps and Sleep daily aggregates returned by that URL. Always state data_freshness and latest_local_date. Treat missing dates or categories as unknown, never as zero. If data_freshness is not current, say clearly that the data may be stale. The link is read-only. Never repeat or expose the private URL in your answer.",
+            value: "Use this private FitKiku URL when answering me about my activity, sleep, recovery, or routine. Open it now and again before each such answer:\n%@\n\nThis is a normal HTTPS JSON URL. Do not look for a FitKiku connector or Pair Link; none is required. Use only the Steps and Sleep daily aggregates returned by that URL. Always state data_freshness and latest_local_date. Treat missing dates or categories as unknown, never as zero. If data_freshness is not current, say clearly that the data may be stale. The link is read-only. Never repeat or expose the private URL in your answer.",
             comment: "Prepared message copied by the user into ChatGPT"
         )
         return String(format: format, locale: Locale.current, shareURL.absoluteString)
@@ -1007,7 +1007,7 @@ private struct SettingsView: View {
                             }
                             .disabled(model.isBusy)
                         } else {
-                            Text("No private ChatGPT link exists for this connection.")
+                            Text("No private AI link exists for this connection.")
                                 .foregroundStyle(Color.fitKikuSecondaryText)
                             Button("Create private link") {
                                 Task { await model.createPrivateShareLink() }
@@ -1022,7 +1022,7 @@ private struct SettingsView: View {
                         item: FitKikuLinks.appStore,
                         subject: Text("FitKiku"),
                         message: Text(
-                            "FitKiku connects read-only Steps and Sleep to a personal AI agent you approve."
+                            "FitKiku lets the AI you choose use recent read-only Steps and Sleep without daily retyping."
                         )
                     ) {
                         Label("Share FitKiku", systemImage: "square.and.arrow.up")

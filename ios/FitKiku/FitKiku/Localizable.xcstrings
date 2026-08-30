@@ -213,12 +213,12 @@
         }
       }
     },
-    "ChatGPT or another approved agent fetched the latest server update.": {
+    "An approved AI fetched the latest server update.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "ChatGPT или другой одобренный ассистент получил последние данные с сервера."
+            "value": "Одобренный вами ИИ получил последние данные с сервера."
           }
         }
       }
@@ -323,22 +323,22 @@
         }
       }
     },
-    "Connected, but the private ChatGPT link could not be created. Try again below. %@": {
+    "Connected, but the private AI link could not be created. Try again below. %@": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Подключение готово, но создать приватную ссылку для ChatGPT не удалось. Повторите попытку ниже. %@"
+            "value": "Подключение готово, но создать приватную ссылку для ИИ не удалось. Повторите попытку ниже. %@"
           }
         }
       }
     },
-    "Connected. Allow Apple Health next, then copy your private ChatGPT prompt.": {
+    "Connected. Allow Apple Health next, then copy the prepared message for your AI.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Подключено. Теперь разрешите доступ к «Здоровью», а затем скопируйте готовое сообщение для ChatGPT."
+            "value": "Подключено. Теперь разрешите доступ к «Здоровью», а затем скопируйте готовое сообщение для своего ИИ."
           }
         }
       }
@@ -393,12 +393,12 @@
         }
       }
     },
-    "Copy one prepared message into an ordinary ChatGPT chat. It includes your private link and asks ChatGPT to fetch it again for every health answer.": {
+    "Copy the prepared message into ChatGPT, or share it with another AI that can open links. It includes your private link and requires a fresh read before relevant answers.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Скопируйте одно готовое сообщение в обычный чат ChatGPT. В нём уже есть ваша приватная ссылка и просьба заново получать данные перед каждым ответом о здоровье."
+            "value": "Скопируйте готовое сообщение в ChatGPT или отправьте его другому ИИ, который умеет открывать ссылки. В сообщении уже есть ваша приватная ссылка и требование получать свежие данные перед ответами об активности, сне, восстановлении или режиме."
           }
         }
       }
@@ -679,22 +679,22 @@
         }
       }
     },
-    "FitKiku connects read-only Steps and Sleep to a personal AI agent you approve.": {
+    "FitKiku lets the AI you choose use recent read-only Steps and Sleep without daily retyping.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "FitKiku подключает данные о шагах и сне только для чтения к одобренному вами персональному ИИ-ассистенту."
+            "value": "FitKiku позволяет выбранному вами ИИ учитывать недавние данные о шагах и сне только для чтения — без ежедневного ввода вручную."
           }
         }
       }
     },
-    "FitKiku creates a private link. Then allow Steps and Sleep and copy one prepared message into ChatGPT.": {
+    "FitKiku creates your private read-only link. Approve Steps and Sleep, then copy one prepared message into ChatGPT.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "FitKiku создаст приватную ссылку. Затем разрешите чтение шагов и сна и скопируйте одно готовое сообщение в ChatGPT."
+            "value": "FitKiku создаст вашу приватную ссылку только для чтения. Разрешите доступ к шагам и сну, затем скопируйте одно готовое сообщение в ChatGPT."
           }
         }
       }
@@ -719,22 +719,22 @@
         }
       }
     },
-    "FitKiku keeps recent Steps and Sleep behind one private, read-only link. You decide when to share or revoke it.": {
+    "FitKiku privately brings recent Steps and Sleep to ChatGPT or another AI that can open links. No daily retyping. Revoke access anytime.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "FitKiku хранит недавние данные о шагах и сне за одной приватной ссылкой только для чтения. Вы сами решаете, когда поделиться ею или отозвать её."
+            "value": "FitKiku конфиденциально передаёт недавние данные о шагах и сне в ChatGPT или другому ИИ, который умеет открывать ссылки. Без ежедневного ввода вручную. Доступ можно отозвать в любой момент."
           }
         }
       }
     },
-    "FitKiku private ChatGPT link": {
+    "FitKiku private AI link": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Приватная ссылка FitKiku для ChatGPT"
+            "value": "Приватная ссылка FitKiku для ИИ"
           }
         }
       }
@@ -979,12 +979,12 @@
         }
       }
     },
-    "No private ChatGPT link exists for this connection.": {
+    "No private AI link exists for this connection.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Для этого подключения ещё нет приватной ссылки ChatGPT."
+            "value": "Для этого подключения ещё нет приватной ссылки для ИИ."
           }
         }
       }
@@ -1049,12 +1049,12 @@
         }
       }
     },
-    "Only after you paste or share the prepared prompt. ChatGPT may retain the link and returned summary under its own policy.": {
+    "Only after you paste or share the prepared message. The AI service may retain the link and returned summary under its own policy.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "ИИ увидит данные только после того, как вы вставите или отправите готовое сообщение. ChatGPT может хранить ссылку и полученную сводку по своим правилам."
+            "value": "ИИ увидит данные только после того, как вы вставите или отправите готовое сообщение. Сервис ИИ может хранить ссылку и полученную сводку по своим правилам."
           }
         }
       }
@@ -1209,22 +1209,22 @@
         }
       }
     },
-    "Private ChatGPT link created. Keep it private; anyone with it can read your recent Steps and Sleep.": {
+    "Private AI link created. Keep it private; anyone with it can read your recent Steps and Sleep.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Приватная ссылка для ChatGPT создана. Не публикуйте её: любой, у кого она есть, сможет читать ваши недавние данные о шагах и сне."
+            "value": "Приватная ссылка для ИИ создана. Не публикуйте её: любой, у кого она есть, сможет читать ваши недавние данные о шагах и сне."
           }
         }
       }
     },
-    "Private ChatGPT link revoked. The iPhone connection remains active.": {
+    "Private AI link revoked. The iPhone connection remains active.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Приватная ссылка для ChatGPT отозвана. Подключение iPhone осталось активным."
+            "value": "Приватная ссылка для ИИ отозвана. Подключение iPhone осталось активным."
           }
         }
       }
@@ -1299,12 +1299,12 @@
         }
       }
     },
-    "Recent Steps and Sleep reached FitKiku. Paste your prepared prompt when you want ChatGPT to read them.": {
+    "Recent Steps and Sleep reached FitKiku. Paste the prepared message when you want your AI to read them.": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Свежие данные о шагах и сне уже в FitKiku. Когда захотите передать их ChatGPT, вставьте готовое сообщение."
+            "value": "Свежие данные о шагах и сне уже в FitKiku. Когда захотите передать их своему ИИ, вставьте готовое сообщение."
           }
         }
       }
@@ -1635,12 +1635,12 @@
         }
       }
     },
-    "Share with ChatGPT": {
+    "Share with your AI": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Отправить в ChatGPT"
+            "value": "Отправить своему ИИ"
           }
         }
       }
@@ -2025,12 +2025,12 @@
         }
       }
     },
-    "Use with ChatGPT": {
+    "Use with your AI": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Использовать с ChatGPT"
+            "value": "Использовать со своим ИИ"
           }
         }
       }
@@ -2105,12 +2105,12 @@
         }
       }
     },
-    "Your health, ready for ChatGPT": {
+    "Let your AI use your steps and sleep": {
       "localizations": {
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Шаги и сон — в ChatGPT"
+            "value": "Пусть ваш ИИ учитывает шаги и сон"
           }
         }
       }
@@ -2131,13 +2131,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Open this private FitKiku URL now, and open it again before every health-related answer:\n%@\n\nThis is a normal HTTPS JSON URL. Do not look for a FitKiku connector or Pair Link; none is required. Use only the Steps and Sleep daily aggregates returned by that URL. Always state data_freshness and latest_local_date. Treat missing dates or categories as unknown, never as zero. If data_freshness is not current, say clearly that the data may be stale. The link is read-only. Never repeat or expose the private URL in your answer."
+            "value": "Use this private FitKiku URL when answering me about my activity, sleep, recovery, or routine. Open it now and again before each such answer:\n%@\n\nThis is a normal HTTPS JSON URL. Do not look for a FitKiku connector or Pair Link; none is required. Use only the Steps and Sleep daily aggregates returned by that URL. Always state data_freshness and latest_local_date. Treat missing dates or categories as unknown, never as zero. If data_freshness is not current, say clearly that the data may be stale. The link is read-only. Never repeat or expose the private URL in your answer."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Открой эту приватную ссылку FitKiku сейчас и открывай её заново перед каждым ответом о здоровье:\n%@\n\nЭто обычная HTTPS-ссылка с JSON. Не ищи коннектор FitKiku или ссылку подключения: они не нужны. Используй только дневные сводки о шагах и сне, которые вернула ссылка. Всегда указывай data_freshness и latest_local_date. Считай отсутствующие даты или категории неизвестными, а не нулевыми. Если data_freshness не равен current, прямо скажи, что данные могут быть устаревшими. Ссылка даёт доступ только для чтения. Никогда не повторяй и не показывай приватную ссылку в ответе."
+            "value": "Используй эту приватную ссылку FitKiku, когда отвечаешь мне об активности, сне, восстановлении или режиме. Открой её сейчас и заново перед каждым таким ответом:\n%@\n\nЭто обычная HTTPS-ссылка с JSON. Не ищи коннектор FitKiku или ссылку подключения: они не нужны. Используй только дневные сводки о шагах и сне, которые вернула ссылка. Всегда указывай data_freshness и latest_local_date. Считай отсутствующие даты или категории неизвестными, а не нулевыми. Если data_freshness не равен current, прямо скажи, что данные могут быть устаревшими. Ссылка даёт доступ только для чтения. Никогда не повторяй и не показывай приватную ссылку в ответе."
           }
         }
       }

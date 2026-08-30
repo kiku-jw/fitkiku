@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 2,
+  "appName": "FitKiku",
+  "themeId": "fitkiku-mono",
+  "connectedCanvas": false,
+  "locales": [
+    "en"
+  ],
+  "locale": "en",
+  "device": "iphone",
+  "orientation": "portrait",
+  "appIcon": "/app-icon.png",
+  "slidesByDevice": {
+    "iphone": [
+      {
+        "id": "fitkiku-bridge",
+        "layout": "hero",
+        "label": {
+          "en": "STEPS + SLEEP → YOUR AI"
+        },
+        "headline": {
+          "en": "Let your AI use\nSteps + Sleep."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/01-first-run.jpg",
+        "inverted": true
+      },
+      {
+        "id": "fitkiku-prompt",
+        "layout": "device-bottom",
+        "label": {
+          "en": "NO DAILY RETYPING"
+        },
+        "headline": {
+          "en": "Stop typing them\nevery day."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/01-first-run.jpg"
+      },
+      {
+        "id": "fitkiku-consent",
+        "layout": "device-top",
+        "label": {
+          "en": "YOU STAY IN CONTROL"
+        },
+        "headline": {
+          "en": "Approve before\nsharing."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/02-consent.jpg",
+        "inverted": true
+      },
+      {
+        "id": "fitkiku-context",
+        "layout": "two-devices",
+        "label": {
+          "en": "READ-ONLY BY DESIGN"
+        },
+        "headline": {
+          "en": "Share only\nSteps + Sleep."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/03-current-delivery.jpg",
+        "screenshotSecondary": "/screenshots/apple/iphone/en/01-first-run.jpg"
+      },
+      {
+        "id": "fitkiku-trust",
+        "layout": "device-top",
+        "label": {
+          "en": "FRESHNESS + GAPS"
+        },
+        "headline": {
+          "en": "See when data\nis incomplete."
+        },
+        "screenshot": "/screenshots/apple/iphone/en/04-partial-delivery.jpg",
+        "inverted": true
+      }
+    ],
+    "android": [],
+    "ipad": [],
+    "android-7": [],
+    "android-10": [],
+    "feature-graphic": []
+  }
+}

@@ -354,14 +354,14 @@ final class APIClientTests: XCTestCase {
         let baseURL = try APIClient.validatedBaseURL("https://fitkiku-origin.kikuai.dev")
         let request = try APIClient().makePublicAgentGrantRequest(
             baseURL: baseURL,
-            agentName: "  FitKiku private ChatGPT link  "
+            agentName: "  FitKiku private AI link  "
         )
         let object = try jsonObject(XCTUnwrap(request.httpBody))
 
         XCTAssertEqual(request.httpMethod, "POST")
         XCTAssertEqual(request.url?.path, "/healthkit/public/app-grants")
         XCTAssertEqual(Set(object.keys), ["agent_name"])
-        XCTAssertEqual(object["agent_name"] as? String, "FitKiku private ChatGPT link")
+        XCTAssertEqual(object["agent_name"] as? String, "FitKiku private AI link")
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
 
@@ -1310,8 +1310,8 @@ final class APIClientTests: XCTestCase {
                 || message.contains("они не нужны")
         )
         XCTAssertTrue(
-            message.contains("open it again before every health-related answer")
-                || message.contains("открывай её заново перед каждым ответом о здоровье")
+            message.contains("again before each such answer")
+                || message.contains("заново перед каждым таким ответом")
         )
         XCTAssertTrue(
             message.contains("unknown, never as zero")
@@ -1478,7 +1478,7 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(partial.deliveryStatus?.hasCurrentAgentRead, false)
         XCTAssertEqual(
             consent.pendingAgentConsent?.preview.assertedAgentName,
-            String(localized: "FitKiku private ChatGPT link")
+            String(localized: "FitKiku private AI link")
         )
         XCTAssertFalse(consent.isPaired)
         XCTAssertTrue(revoked.localCredentialCleanupPending)

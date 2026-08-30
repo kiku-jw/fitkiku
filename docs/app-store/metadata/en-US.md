@@ -1,10 +1,11 @@
 # FitKiku App Store Metadata — English (U.S.)
 
-> Document class: release input. This is the durable source for version 1.0
-> metadata. Build `1.0 (3)` passed review and is publicly available free in the
-> configured non-EU storefronts. Apple's public catalog reports a 2026-08-27
-> release date for App ID `6801516904`. EU-27 storefronts remain disabled.
-> Never commit reviewer credentials or a live Pair Link here.
+> Document class: release input. This records the released version 1.0
+> metadata and the separate version 1.1 candidate. Build `1.0 (3)` passed
+> review and is publicly available free in the configured non-EU storefronts.
+> Apple's public catalog reports a 2026-08-27 release date for App ID
+> `6801516904`. EU-27 storefronts remain disabled. Never commit reviewer
+> credentials or a live Pair Link here.
 
 ## App information
 
@@ -44,7 +45,7 @@ It avoids repeating the name and the strongest subtitle words while covering
 the agent, portability, automation, and trust jobs. Do not add competitor names
 or Apple trademarks as keywords.
 
-## Description
+## Released version 1.0 description
 
 FitKiku connects recent Apple Health context to a personal AI agent you
 approve.
@@ -73,12 +74,38 @@ foreground catch-up when recent delivery needs attention.
 FitKiku is a fitness-data connection and accountability tool. It is not
 medical diagnosis, treatment, clearance, or emergency care.
 
-### Next-version opening copy candidate — not applied in App Store Connect
+## Version 1.1 description candidate — not applied in App Store Connect
 
-Stop retyping your Steps and Sleep into your AI agent.
+Let the AI you already use take your recent Steps and Sleep into account —
+without retyping them every day.
 
-FitKiku gives a compatible personal AI agent recent read-only context after
-you approve the destination on your iPhone.
+FitKiku is a separate iPhone app. It privately delivers recent read-only Steps
+and Sleep to ChatGPT or another AI that can open a normal HTTPS link.
+
+Tap Connect ChatGPT, approve one private read-only link, grant Steps and Sleep
+access, and copy one prepared message into your chat. No server address,
+password, pairing code, or Health export is needed. Compatible agents can still
+use the Advanced Pair Link flow.
+
+FitKiku helps you:
+
+- review daily Steps and Sleep from Apple Health;
+- keep missing or partial coverage visible instead of treating it as zero;
+- see freshness and recent delivery status;
+- revoke future device delivery and agent access;
+- delete an anonymous FitKiku connection and its synced server data;
+- use Apple Watch data after it reaches Apple Health on the paired iPhone.
+
+FitKiku never writes to Apple Health. It contains no advertising or tracking
+SDK. Health summaries are sent only after you approve a compatible FitKiku
+destination and grant Apple Health read access.
+
+Background delivery is best effort. Opening the app can perform a bounded
+foreground catch-up when recent delivery needs attention.
+
+FitKiku does not include an AI coach, expose everything in Apple Health, or
+promise real-time delivery. It is a fitness-data connection and accountability
+tool, not medical diagnosis, treatment, clearance, or emergency care.
 
 ## Promotional text
 
@@ -87,7 +114,7 @@ or App Store availability before each claim is true.
 
 Next-version candidate, subject to a final truth and length check:
 
-`Stop retyping Steps and Sleep. Connect a compatible personal AI agent with visible freshness and revocable read-only access.`
+`Let your AI use recent Steps and Sleep without daily retyping. See freshness, keep missing data honest, and revoke read-only access anytime.`
 
 ## Version 1.0 release notes
 
@@ -102,6 +129,10 @@ personal AI agents.
 
 ## Next-version release-note candidate
 
+- Leads with the result: let your AI use recent Steps and Sleep without daily
+  retyping.
+- Creates one private read-only link inside FitKiku; no server, password, Pair
+  Link, or setup code is needed for the primary flow.
 - Distinguishes current server delivery from the agent reading that update.
 - Adds one copyable or shareable prompt when the agent still needs to fetch.
 - Adds native Share and Rate actions in Settings.

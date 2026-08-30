@@ -8,6 +8,8 @@ REPO_ROOT=${SCRIPT_DIR:h:h:h}
 OUTPUT_DIR=${1:-"$REPO_ROOT/docs/app-store/screenshots/en-US"}
 DERIVED_DATA=${FITKIKU_SCREENSHOT_DERIVED_DATA:-/tmp/fitkiku-app-store-screenshots}
 SIMULATOR_ID=${FITKIKU_SCREENSHOT_SIMULATOR_ID:-}
+SCREENSHOT_LANGUAGE=${FITKIKU_SCREENSHOT_LANGUAGE:-en}
+SCREENSHOT_LOCALE=${FITKIKU_SCREENSHOT_LOCALE:-en_US}
 
 if [[ -z "$SIMULATOR_ID" ]]; then
   SIMULATOR_ID=$(xcrun simctl list devices available \
@@ -72,7 +74,9 @@ for item in $SCENARIOS; do
     >/dev/null 2>&1 || true
   xcrun simctl install "$SIMULATOR_ID" "$APP_PATH"
   SIMCTL_CHILD_FITKIKU_DEMO_SCENARIO="$scenario" \
-    xcrun simctl launch "$SIMULATOR_ID" com.kikuai.fitkiku.health >/dev/null
+    xcrun simctl launch "$SIMULATOR_ID" com.kikuai.fitkiku.health \
+      -AppleLanguages "($SCREENSHOT_LANGUAGE)" \
+      -AppleLocale "$SCREENSHOT_LOCALE" >/dev/null
   sleep 5
   xcrun simctl io "$SIMULATOR_ID" screenshot "$raw" >/dev/null
   sips -s format jpeg -s formatOptions 100 "$raw" --out "$output" >/dev/null

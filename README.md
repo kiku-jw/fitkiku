@@ -6,15 +6,19 @@
 
 [Download FitKiku on the App Store](https://apps.apple.com/app/id6801516904)
 
-FitKiku is an Apple Health connector for personal AI agents. Its native iPhone
-app gives an agent you approve recent, read-only Apple Health context after
-explicit user approval.
+FitKiku lets the AI you already use take your recent Steps and Sleep into
+account. Its native iPhone app privately delivers those two read-only
+categories to ChatGPT or another AI that can open links, after explicit user
+approval.
+
+FitKiku remains a separate data product. It is not an AI coach, does not expose
+everything in Apple Health, and does not promise real-time delivery.
 
 The current product reads only daily Steps and Sleep. Released version 1.0
 supports explicit agent pairing, visible delivery freshness, revocation, and
 anonymous in-app account deletion without modifying Apple Health. The next 1.1
 source candidate replaces the normal pairing ceremony with one app-created,
-private, revocable link and a prepared message for ChatGPT.
+private, revocable link and a prepared message for the user's AI.
 
 ## Current status
 
@@ -81,10 +85,11 @@ In the 1.1 source candidate, the normal flow happens inside the iPhone app:
    private ChatGPT chat.
 
 The prepared message already contains the user's actual private URL. It tells
-ChatGPT to open that normal HTTPS JSON URL again before each health-related
-answer, report freshness, preserve missing values as unknown, and never repeat
-the URL. No native FitKiku connector or Pair Link is required for this path;
-the chat only needs the ability to open HTTPS links.
+the AI to open that normal HTTPS JSON URL again before relevant answers about
+activity, sleep, recovery, or routine, report freshness, preserve missing
+values as unknown, and never repeat the URL. No native FitKiku connector or
+Pair Link is required for this path; the AI only needs the ability to open
+HTTPS links.
 
 The URL is a bearer credential. Anyone who receives it can read the bounded
 recent summary until the user replaces or revokes the link in FitKiku Settings.
@@ -105,7 +110,7 @@ HTTPS destination the user approves. Sleep interval timestamps and categories
 stay on the iPhone.
 
 Missing data is never converted to zero. FitKiku is not medical diagnosis,
-treatment, clearance, or emergency care.
+treatment, clearance, emergency care, or a built-in AI coach.
 
 Release 1.0 assigns each daily summary to the `Europe/Kyiv` calendar. Users
 whose ordinary day boundary differs should treat multi-timezone grouping as an
