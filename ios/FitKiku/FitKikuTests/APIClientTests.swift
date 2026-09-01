@@ -365,6 +365,34 @@ final class APIClientTests: XCTestCase {
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
 
+    func testHostedGrantIssuedResponseDecodesBackendSnakeCaseContract() throws {
+        let pairLink =
+            "fitkiku-health://pair?server=https%3A%2F%2Ffitkiku-origin.kikuai.dev"
+            + "&token=\(validToken)"
+        let data = try JSONSerialization.data(withJSONObject: ["pair_link": pairLink])
+
+        let response = try CanonicalJSON.decoder().decode(
+            PublicAgentGrantIssuedResponse.self,
+            from: data
+        )
+
+        XCTAssertEqual(response.pairLink, pairLink)
+    }
+
+    func testDeviceShareLinkResponseDecodesBackendSnakeCaseContract() throws {
+        let shareURL =
+            "https://kikuai.dev/fitkiku-health/"
+            + String(repeating: "a", count: 64)
+        let data = try JSONSerialization.data(withJSONObject: ["share_url": shareURL])
+
+        let response = try CanonicalJSON.decoder().decode(
+            DeviceShareLinkResponse.self,
+            from: data
+        )
+
+        XCTAssertEqual(response.shareURL, shareURL)
+    }
+
     func testAgentPreviewDecodesBackendSnakeCaseContract() throws {
         let data = Data(
             """

@@ -120,10 +120,6 @@ struct PublicAgentGrantIssueRequest: Codable, Equatable, Sendable {
 
 struct PublicAgentGrantIssuedResponse: Codable, Equatable, Sendable {
     let pairLink: String
-
-    private enum CodingKeys: String, CodingKey {
-        case pairLink = "pair_link"
-    }
 }
 
 enum HealthReadScope: String, Codable, Hashable, Sendable {
@@ -176,7 +172,7 @@ struct DeviceShareLinkResponse: Codable, Equatable, Sendable {
     let shareURL: String
 
     private enum CodingKeys: String, CodingKey {
-        case shareURL = "share_url"
+        case shareURL = "shareUrl"
     }
 }
 
