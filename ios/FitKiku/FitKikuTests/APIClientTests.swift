@@ -1423,6 +1423,8 @@ final class APIClientTests: XCTestCase {
     }
 
     func testSettingsLinksKeepProductAndSupportWithoutCreatorProfile() {
+        XCTAssertEqual(FitKikuLinks.chatGPT.scheme, "https")
+        XCTAssertEqual(FitKikuLinks.chatGPT.host, "chatgpt.com")
         XCTAssertEqual(
             FitKikuLinks.all,
             [

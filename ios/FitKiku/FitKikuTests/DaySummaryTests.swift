@@ -181,6 +181,28 @@ final class DaySummaryTests: XCTestCase {
         XCTAssertTrue(russian.contains("остаются на этом iPhone"))
     }
 
+    func testActivationActionsHaveRussianTranslations() throws {
+        let russianBundle = try localizedBundle(language: "ru")
+        let keys = [
+            "Connect ChatGPT",
+            "Get started",
+            "Allow steps and sleep",
+            "Send it to ChatGPT",
+            "Create a private read-only link for your AI.",
+            "Copy for ChatGPT",
+            "Open ChatGPT",
+            "You're connected",
+        ]
+
+        for key in keys {
+            XCTAssertNotEqual(
+                russianBundle.localizedString(forKey: key, value: nil, table: nil),
+                key,
+                "Missing Russian activation copy for \(key)"
+            )
+        }
+    }
+
     private func localizedBundle(language: String) throws -> Bundle {
         let path = try XCTUnwrap(Bundle.main.path(forResource: language, ofType: "lproj"))
         return try XCTUnwrap(Bundle(path: path))

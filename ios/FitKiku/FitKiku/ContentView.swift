@@ -8,8 +8,6 @@ import UIKit
 struct ContentView: View {
     @Environment(\.requestReview) private var requestReview
     @ObservedObject var model: AppModel
-    @State private var pastedPairLink = ""
-    @State private var showAdvancedSetup = false
     @State private var showSettings = false
     @State private var showDeliveryDetails: Bool
     @State private var copiedSetupPrompt = false
@@ -24,36 +22,24 @@ struct ContentView: View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(spacing: 20) {
-                        if !isReviewingConnection {
-                            intro
-                        }
-                        if model.isPaired {
-                            connectionCard
-                        } else {
+                    VStack(spacing: 24) {
+                        if isReviewingConnection {
                             pairingCard
-                        }
-                        if !isReviewingConnection {
-                            if model.isPaired || model.healthAccessRequested {
-                                healthAccessCard
-                            }
+                        } else {
+                            stageHeader
+                            stageCard
                             if model.healthAccessRequested {
-                                if model.isPaired {
-                                    chatGPTCard
-                                }
                                 summaries
                             }
-                            if model.isPaired {
+                            if model.isPaired && model.healthAccessRequested {
                                 syncCard
                                     .id("delivery")
                             }
                         }
-                        privacyNote
+                        feedback
                         #if DEBUG
                         if model.demoScrollTarget != nil {
-                            Color.clear
-                                .frame(height: 440)
-                                .accessibilityHidden(true)
+                            Color.clear.frame(height: 240).accessibilityHidden(true)
                         }
                         #endif
                     }
@@ -72,7 +58,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .tint(.teal)
+            .tint(Color.fitKikuAccent)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -98,33 +84,82 @@ struct ContentView: View {
                 else { return }
                 requestReview()
             }
+            .onChange(of: model.privateShareURL) { _, _ in
+                copiedSetupPrompt = false
+            }
         }
     }
 
-    private var intro: some View {
+    @ViewBuilder
+    private var stageCard: some View {
+        switch presentationStage {
+        case .connect:
+            pairingCard
+        case .health:
+            healthAccessCard
+        case .share:
+            chatGPTCard
+        case .ready:
+            readyCard
+        }
+    }
+
+    private var stageHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: "point.3.connected.trianglepath.dotted")
-                .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(.teal)
-                .accessibilityHidden(true)
-            Text("Let your AI use your steps and sleep")
-                .font(.title.bold())
-            Text("FitKiku privately brings recent Steps and Sleep to ChatGPT or another AI that can open links. No daily retyping. Revoke access anytime.")
-            .font(.body)
-            .foregroundStyle(Color.fitKikuSecondaryText)
+            if let step = presentationStage.step {
+                setupProgress(step: step)
+            } else {
+                Label("Connected", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+            }
+
+            Text(LocalizedStringKey(presentationStage.title))
+                .font(.largeTitle.bold())
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(stageSubtitle)
+                .font(.title3)
+                .foregroundStyle(Color.fitKikuSecondaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func setupProgress(step: Int) -> some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 5) {
+                ForEach(1...3, id: \.self) { index in
+                    Capsule()
+                        .fill(index <= step ? Color.fitKikuAccent : Color(.tertiarySystemFill))
+                        .frame(width: 24, height: 5)
+                }
+            }
+            Text(
+                String(
+                    format: String(localized: "Step %lld of 3"),
+                    locale: Locale.current,
+                    step
+                )
+            )
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(Color.fitKikuSecondaryText)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            Text(
+                String(
+                    format: String(localized: "Step %lld of 3"),
+                    locale: Locale.current,
+                    step
+                )
+            )
+        )
     }
 
     private var pairingCard: some View {
         card {
             VStack(alignment: .leading, spacing: 16) {
-                sectionHeader(
-                    title: "Connect ChatGPT",
-                    detail: "Start here",
-                    systemImage: "link.badge.plus"
-                )
-
                 if model.localCredentialCleanupPending {
                     cleanupRecovery
                 } else if let consent = model.pendingAgentConsent {
@@ -132,57 +167,29 @@ struct ContentView: View {
                 } else if let recovery = model.pendingLegacyPairing {
                     legacyConsentCard(recovery)
                 } else {
-                    Text("FitKiku creates your private read-only link. Approve Steps and Sleep, then copy one prepared message into ChatGPT.")
-                        .foregroundStyle(Color.fitKikuSecondaryText)
-
                     Button {
                         Task { await model.beginHostedConnection() }
                     } label: {
-                        actionLabel("Connect ChatGPT", systemImage: "message.fill")
+                        actionLabel("Get started", systemImage: "message.fill")
                     }
                     .buttonStyle(.borderedProminent)
+                    .foregroundStyle(Color.fitKikuPrimaryForeground)
                     .disabled(model.isBusy)
 
-                    Text(
-                        "You will approve read-only Steps and Sleep access before anything is shared."
-                    )
-                    .font(.footnote)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-
-                    DisclosureGroup("Other agents and recovery", isExpanded: $showAdvancedSetup) {
-                        VStack(alignment: .leading, spacing: 14) {
-                            manualPairLinkSetup
-                            Divider()
-                            recoverySetup
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 18) {
+                            Label("No login", systemImage: "person.crop.circle")
+                            Label("Read-only", systemImage: "eye")
                         }
-                        .padding(.top, 10)
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("No login", systemImage: "person.crop.circle")
+                            Label("Read-only", systemImage: "eye")
+                        }
                     }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.fitKikuSecondaryText)
                 }
-                feedback
             }
-        }
-    }
-
-    private var manualPairLinkSetup: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Paste a Pair Link only if a compatible FitKiku connection already returned one.")
-                .font(.footnote)
-                .foregroundStyle(Color.fitKikuSecondaryText)
-            Text("Pair Link")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.fitKikuSecondaryText)
-            SecureField("Paste Pair Link", text: $pastedPairLink)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(.URL)
-                .submitLabel(.go)
-                .onSubmit(reviewPairLink)
-                .textFieldStyle(.roundedBorder)
-            Button(action: reviewPairLink) {
-                actionLabel("Review connection", systemImage: "checkmark.shield")
-            }
-            .buttonStyle(.bordered)
-            .disabled(model.isBusy || pairLinkIsBlank)
         }
     }
 
@@ -200,41 +207,8 @@ struct ContentView: View {
                 actionLabel("Finish local cleanup", systemImage: "trash")
             }
             .buttonStyle(.borderedProminent)
+            .foregroundStyle(Color.fitKikuPrimaryForeground)
             .disabled(model.isBusy)
-        }
-    }
-
-    private var recoverySetup: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Use this only when your private FitKiku server gives you an 8-digit code.")
-                .font(.footnote)
-                .foregroundStyle(Color.fitKikuSecondaryText)
-            Text("Server address")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.fitKikuSecondaryText)
-            TextField("https://fitkiku.example", text: $model.serverAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .textContentType(.URL)
-                .keyboardType(.URL)
-                .textFieldStyle(.roundedBorder)
-            Text("Pairing code")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Color.fitKikuSecondaryText)
-            TextField("8-digit code", text: $model.pairingCode)
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .textFieldStyle(.roundedBorder)
-                .onChange(of: model.pairingCode) { _, value in
-                    model.pairingCode = String(value.filter(\.isNumber).prefix(8))
-                }
-            Button {
-                Task { await model.pairLegacyManually() }
-            } label: {
-                actionLabel("Connect with recovery code", systemImage: "wrench.and.screwdriver")
-            }
-            .buttonStyle(.bordered)
-            .disabled(model.isBusy || model.pairingCode.count != 8)
         }
     }
 
@@ -243,44 +217,54 @@ struct ContentView: View {
             Text(
                 LocalizedStringKey(
                     consent.createsPrivateShareLink
-                        ? "Create your private link"
+                        ? "Create your private link?"
                         : "Approve this connection"
                 )
             )
-                .font(.headline)
-            Text(
-                LocalizedStringKey(
-                    consent.createsPrivateShareLink
-                        ? "FitKiku will create a revocable link for recent Steps and Sleep. Anyone with the link can read that summary."
-                        : "This step only approves the destination below. Apple Health permission is still separate."
-                )
-            )
-            .foregroundStyle(Color.fitKikuSecondaryText)
-            if !consent.createsPrivateShareLink {
-                detailRow("Claimed agent", value: consent.preview.assertedAgentName)
-                Text("The requesting service supplied this name; FitKiku has not verified its identity.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                detailRow("Destination", value: consent.baseURL.absoluteString, monospaced: true)
-            }
-            detailRow("Read-only data", value: String(localized: "Steps and Sleep"))
+            .font(.title2.bold())
+
             if consent.createsPrivateShareLink {
-                Label(
-                    "Keep the message private. Anyone with its link can read your recent Steps and Sleep until you revoke it in Settings.",
-                    systemImage: "lock.shield"
-                )
-                .font(.footnote)
-                .foregroundStyle(Color.fitKikuSecondaryText)
-                DisclosureGroup("Privacy details") {
+                Text("Your AI will be able to read only these daily summaries.")
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 18) {
+                        Label("Steps", systemImage: "figure.walk")
+                        Label("Sleep", systemImage: "bed.double.fill")
+                    }
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label("Steps", systemImage: "figure.walk")
+                        Label("Sleep", systemImage: "bed.double.fill")
+                    }
+                }
+                .font(.headline)
+
+                Label("Read-only. Revoke anytime in Settings.", systemImage: "lock.shield")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+
+                DisclosureGroup("How it works") {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(NativeHealthDisclosure.outbound)
-                        Text("Only after you paste or share the prepared message. The AI service may retain the link and returned summary under its own policy.")
+                        Text("Anyone with the private link can read the summary until you revoke it.")
+                        Text("The AI service may retain the link and returned summary under its own policy.")
                     }
                     .font(.footnote)
                     .foregroundStyle(Color.fitKikuSecondaryText)
                     .padding(.top, 8)
                 }
             } else {
+                Text("Review the destination and data scope before connecting.")
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+            }
+
+            if !consent.createsPrivateShareLink {
+                detailRow("Claimed agent", value: consent.preview.assertedAgentName)
+                Text("The requesting service supplied this name; FitKiku has not verified its identity.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+                detailRow("Destination", value: consent.baseURL.absoluteString, monospaced: true)
+                detailRow("Read-only data", value: String(localized: "Steps and Sleep"))
                 Text(NativeHealthDisclosure.outbound)
                     .font(.footnote)
                     .foregroundStyle(Color.fitKikuSecondaryText)
@@ -288,7 +272,8 @@ struct ContentView: View {
                 disclosure(title: "Retention", body: consent.preview.retentionDisclosure)
                 disclosure(title: "AI processing", body: consent.preview.aiProcessingDisclosure)
             }
-            Text("Apple Health permission is a separate next step.")
+
+            Text("Health permission comes next.")
                 .font(.footnote.weight(.medium))
 
             ViewThatFits(in: .horizontal) {
@@ -308,7 +293,6 @@ struct ContentView: View {
     private var cancelPairingButton: some View {
         Button("Cancel", role: .cancel) {
             model.cancelPendingPairing()
-            pastedPairLink = ""
         }
         .buttonStyle(.bordered)
         .frame(minHeight: minimumControlHeight)
@@ -316,12 +300,7 @@ struct ContentView: View {
 
     private var approvePairingButton: some View {
         Button {
-            Task {
-                await model.approveAgentPairing()
-                if model.pendingAgentConsent == nil {
-                    pastedPairLink = ""
-                }
-            }
+            Task { await model.approveAgentPairing() }
         } label: {
             Label(
                 LocalizedStringKey(
@@ -334,6 +313,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
+        .foregroundStyle(Color.fitKikuPrimaryForeground)
         .disabled(model.isBusy)
         .frame(minHeight: minimumControlHeight)
     }
@@ -374,6 +354,7 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
         }
         .buttonStyle(.borderedProminent)
+        .foregroundStyle(Color.fitKikuPrimaryForeground)
         .disabled(model.isBusy)
     }
 
@@ -387,43 +368,37 @@ struct ContentView: View {
         }
     }
 
-    private var connectionCard: some View {
-        card {
-            VStack(alignment: .leading, spacing: 12) {
-                sectionHeader(
-                    title: "iPhone connected",
-                    detail: connectionHost,
-                    systemImage: "checkmark.seal.fill",
-                    tint: .green
-                )
-                Text(connectionStatusSummary)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                feedback
-            }
-        }
-    }
-
     private var chatGPTCard: some View {
         card {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader(
-                    title: "Use with your AI",
-                    detail: model.privateShareURL == nil ? "One tap" : "Ready",
-                    systemImage: "message.fill",
-                    tint: .teal
-                )
-
                 if let shareURL = model.privateShareURL {
-                    Text("Copy the prepared message into ChatGPT, or share it with another AI that can open links. It includes your private link and requires a fresh read before relevant answers.")
-                    .foregroundStyle(Color.fitKikuSecondaryText)
+                    if copiedSetupPrompt {
+                        Label("Copied. Paste it into ChatGPT.", systemImage: "checkmark.circle.fill")
+                            .font(.headline)
+                            .foregroundStyle(.green)
 
-                    Button {
-                        copyChatGPTPrompt(shareURL)
-                    } label: {
-                        actionLabel(FitKikuChatPrompt.buttonTitle, systemImage: "doc.on.doc")
+                        Link(destination: FitKikuLinks.chatGPT) {
+                            actionLabel("Open ChatGPT", systemImage: "arrow.up.right.square")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .foregroundStyle(Color.fitKikuPrimaryForeground)
+
+                        Button {
+                            copyChatGPTPrompt(shareURL)
+                        } label: {
+                            actionLabel("Copy again", systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button {
+                            copyChatGPTPrompt(shareURL)
+                        } label: {
+                            actionLabel(FitKikuChatPrompt.buttonTitle, systemImage: "doc.on.doc")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .foregroundStyle(Color.fitKikuPrimaryForeground)
+                        .disabled(model.isBusy)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(model.isBusy)
 
                     ShareLink(item: FitKikuChatPrompt.message(shareURL: shareURL)) {
                         actionLabel("Share with another AI", systemImage: "square.and.arrow.up")
@@ -431,33 +406,43 @@ struct ContentView: View {
                     .buttonStyle(.bordered)
                     .disabled(model.isBusy)
 
-                    if copiedSetupPrompt {
-                        Label(
-                            LocalizedStringKey(FitKikuChatPrompt.copiedStatus),
-                            systemImage: "checkmark.circle.fill"
-                        )
-                            .font(.footnote)
-                            .foregroundStyle(.green)
-                    }
-
-                    Label(
-                        "Keep the message private. Anyone with its link can read your recent Steps and Sleep until you revoke it in Settings.",
-                        systemImage: "lock.shield"
-                    )
+                    Label("The message contains your private link.", systemImage: "lock.shield")
                     .font(.footnote)
                     .foregroundStyle(Color.fitKikuSecondaryText)
                 } else {
-                    Text(
-                        "Create a private link for this connection. It does not expose raw Health data, sources, or write access."
-                    )
-                    .foregroundStyle(Color.fitKikuSecondaryText)
                     Button {
                         Task { await model.createPrivateShareLink() }
                     } label: {
                         actionLabel("Create my private link", systemImage: "link.badge.plus")
                     }
                     .buttonStyle(.borderedProminent)
+                    .foregroundStyle(Color.fitKikuPrimaryForeground)
                     .disabled(model.isBusy)
+                }
+            }
+        }
+    }
+
+    private var readyCard: some View {
+        card {
+            VStack(alignment: .leading, spacing: 14) {
+                Label("Latest data received", systemImage: "checkmark.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.green)
+
+                Link(destination: FitKikuLinks.chatGPT) {
+                    actionLabel("Open ChatGPT", systemImage: "arrow.up.right.square")
+                }
+                .buttonStyle(.borderedProminent)
+                .foregroundStyle(Color.fitKikuPrimaryForeground)
+
+                if let shareURL = model.privateShareURL {
+                    Button {
+                        copyChatGPTPrompt(shareURL)
+                    } label: {
+                        actionLabel("Copy setup message", systemImage: "doc.on.doc")
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
         }
@@ -466,44 +451,31 @@ struct ContentView: View {
     private var healthAccessCard: some View {
         card {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader(
-                    title: "Allow Apple Health",
-                    detail: model.isPaired ? "Next step" : "Local only",
-                    systemImage: "heart.fill",
-                    tint: .red
-                )
                 if !model.healthAccessRequested {
-                    Text("FitKiku asks only for read access to Steps and Sleep. Nothing is written to Apple Health.")
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                    if !model.isPaired {
-                        Text("You can review local summaries before connecting an agent.")
-                            .font(.footnote)
-                            .foregroundStyle(Color.fitKikuSecondaryText)
-                    }
-                    if model.isPaired {
-                        Button {
-                            Task { await model.requestHealthAccess() }
-                        } label: {
-                            actionLabel("Continue to Health", systemImage: "heart.fill")
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 18) {
+                            Label("Steps", systemImage: "figure.walk")
+                            Label("Sleep", systemImage: "bed.double.fill")
                         }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.isBusy)
-                    } else {
-                        Button {
-                            Task { await model.requestHealthAccess() }
-                        } label: {
-                            actionLabel("Continue to Health", systemImage: "heart.fill")
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Steps", systemImage: "figure.walk")
+                            Label("Sleep", systemImage: "bed.double.fill")
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(model.isBusy)
                     }
+                    .font(.headline)
+
+                    Button {
+                        Task { await model.requestHealthAccess() }
+                    } label: {
+                        actionLabel("Continue to Health", systemImage: "heart.fill")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .foregroundStyle(Color.fitKikuPrimaryForeground)
+                    .disabled(model.isBusy)
                 } else {
                     Label("Read-only access requested", systemImage: "checkmark.circle.fill")
                         .font(.headline)
                         .foregroundStyle(.green)
-                    Text("Apple keeps read-denial status private. Missing data stays Unknown; FitKiku never replaces it with zero.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
                 }
             }
         }
@@ -513,14 +485,8 @@ struct ContentView: View {
     private var summaries: some View {
         card {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader(
-                    title: "Local Apple Health",
-                    detail: "On this iPhone",
-                    systemImage: "iphone"
-                )
-                Text("These summaries stay available on this iPhone, even without an agent connection.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
+                Text("On this iPhone")
+                    .font(.headline)
                 CompactDaySummaryRow(title: "Today", summary: model.today)
                 Divider()
                 CompactDaySummaryRow(title: "Yesterday", summary: model.yesterday)
@@ -533,79 +499,41 @@ struct ContentView: View {
     private var syncCard: some View {
         card {
             VStack(alignment: .leading, spacing: 14) {
-                sectionHeader(
-                    title: "Check delivery",
-                    detail: deliveryDetailLabel,
-                    systemImage: "arrow.triangle.2.circlepath"
-                )
-                Text("Refresh server and agent status, then inspect technical details only when needed.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: deliveryStatusSymbol)
+                        .font(.title3)
+                        .foregroundStyle(deliveryStatusColor)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(LocalizedStringKey(deliveryStatusTitle))
+                            .font(.headline)
+                        Text(connectionStatusSummary)
+                            .font(.subheadline)
+                            .foregroundStyle(Color.fitKikuSecondaryText)
+                    }
+                }
+                .accessibilityElement(children: .combine)
 
                 Button {
                     Task { await model.syncNow() }
                 } label: {
                     actionLabel(
-                        model.isBusy ? "Checking…" : "Check and sync now",
+                        model.isBusy ? "Syncing…" : "Sync now",
                         systemImage: "arrow.triangle.2.circlepath"
                     )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
                 .disabled(model.isBusy || !model.healthAccessRequested)
 
-                if let lastSyncAt = model.lastSyncAt {
-                    Label(
-                        String(
-                            format: String(localized: "Last server-confirmed sync %@"),
-                            locale: Locale.current,
-                            lastSyncAt.formatted(date: .abbreviated, time: .shortened)
-                        ),
-                        systemImage: "checkmark.circle"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                }
-
-                if let shareURL = model.privateShareURL,
-                   let delivery = model.deliveryStatus,
-                   delivery.dataFreshness == .current,
-                   !delivery.hasCurrentAgentRead
-                {
+                DisclosureGroup("Details", isExpanded: $showDeliveryDetails) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(
-                            "Your iPhone data is current on the server, but your agent has not read the latest update yet."
-                        )
-                        .font(.footnote)
-                        .foregroundStyle(Color.fitKikuSecondaryText)
-
-                        Button {
-                            copyChatGPTPrompt(shareURL)
-                        } label: {
-                            actionLabel(
-                                FitKikuChatPrompt.buttonTitle,
-                                systemImage: "doc.on.doc"
+                        if let lastSyncAt = model.lastSyncAt {
+                            deliveryStatusLine(
+                                "Last sync",
+                                date: lastSyncAt,
+                                emptyText: "Not synced yet"
                             )
                         }
-                        .buttonStyle(.bordered)
-
-                        ShareLink(item: FitKikuChatPrompt.message(shareURL: shareURL)) {
-                            actionLabel("Share with your AI", systemImage: "square.and.arrow.up")
-                        }
-                        .buttonStyle(.bordered)
-
-                        if copiedSetupPrompt {
-                            Label(
-                                LocalizedStringKey(FitKikuChatPrompt.copiedStatus),
-                                systemImage: "checkmark.circle.fill"
-                            )
-                            .font(.footnote)
-                            .foregroundStyle(.green)
-                        }
-                    }
-                }
-
-                DisclosureGroup("Delivery details", isExpanded: $showDeliveryDetails) {
-                    VStack(alignment: .leading, spacing: 10) {
                         if let delivery = model.deliveryStatus {
                             deliveryStatusLine(
                                 "Server confirmed",
@@ -660,26 +588,16 @@ struct ContentView: View {
                                 .foregroundStyle(.orange)
                         }
 
-                        Button("Refresh delivery details") {
-                            Task { await model.refreshDeliveryStatus() }
+                        if let status = model.statusMessage {
+                            Text(status)
+                                .font(.caption)
+                                .foregroundStyle(Color.fitKikuSecondaryText)
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(model.isBusy)
                     }
                     .padding(.top, 10)
                 }
             }
         }
-    }
-
-    private var privacyNote: some View {
-        Label(
-            "FitKiku sends daily Steps, asleep minutes, coverage, and source details only after approval. Sleep interval times stay on this iPhone.",
-            systemImage: "lock.shield"
-        )
-        .font(.footnote)
-        .foregroundStyle(Color.fitKikuSecondaryText)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var feedback: some View {
@@ -690,78 +608,19 @@ struct ContentView: View {
                 } icon: {
                     Image(systemName: "exclamationmark.triangle.fill")
                 }
-                    .foregroundStyle(.red)
-                    .accessibilityLabel(
-                        Text(
-                            String(
-                                format: String(localized: "Error: %@"),
-                                locale: Locale.current,
-                                error
-                            )
+                .foregroundStyle(.red)
+                .accessibilityLabel(
+                    Text(
+                        String(
+                            format: String(localized: "Error: %@"),
+                            locale: Locale.current,
+                            error
                         )
                     )
-            } else if let status = model.statusMessage {
-                Label {
-                    Text(status)
-                } icon: {
-                    Image(systemName: "info.circle.fill")
-                }
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                    .accessibilityLabel(
-                        Text(
-                            String(
-                                format: String(localized: "Status: %@"),
-                                locale: Locale.current,
-                                status
-                            )
-                        )
-                    )
+                )
             }
         }
         .font(.footnote)
-    }
-
-    private func sectionHeader(
-        title: String,
-        detail: String,
-        systemImage: String,
-        tint: Color = .teal
-    ) -> some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                headerIcon(systemImage, tint: tint)
-                Text(LocalizedStringKey(title))
-                    .font(.headline)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-                Spacer(minLength: 8)
-                Text(LocalizedStringKey(detail))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                    .lineLimit(1)
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    headerIcon(systemImage, tint: tint)
-                    Text(LocalizedStringKey(title))
-                        .font(.headline)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Text(LocalizedStringKey(detail))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private func headerIcon(_ systemImage: String, tint: Color) -> some View {
-        Image(systemName: systemImage)
-            .foregroundStyle(tint)
-            .accessibilityHidden(true)
     }
 
     private func detailRow(_ title: String, value: String, monospaced: Bool = false) -> some View {
@@ -799,65 +658,93 @@ struct ContentView: View {
             )
     }
 
-    private var pairLinkIsBlank: Bool {
-        pastedPairLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func reviewPairLink() {
-        guard !pairLinkIsBlank, !model.isBusy else { return }
-        let input = pastedPairLink
-        pastedPairLink = ""
-        copiedSetupPrompt = false
-        Task { await model.loadPairingInput(input) }
-    }
-
     private func copyChatGPTPrompt(_ shareURL: URL) {
         UIPasteboard.general.string = FitKikuChatPrompt.message(shareURL: shareURL)
         copiedSetupPrompt = true
     }
 
-    private var connectionHost: String {
-        URL(string: model.serverAddress)?.host ?? String(localized: "Approved destination")
+    private var presentationStage: FitKikuPresentationStage {
+        guard model.isPaired else { return .connect }
+        guard model.healthAccessRequested else { return .health }
+        guard model.privateShareURL != nil,
+              model.deliveryStatus?.hasCurrentAgentRead == true
+        else { return .share }
+        return .ready
+    }
+
+    private var stageSubtitle: String {
+        switch presentationStage {
+        case .connect:
+            String(localized: "One quick setup. No more retyping steps and sleep.")
+        case .health:
+            String(localized: "Read-only. FitKiku never writes to Health.")
+        case .share:
+            model.privateShareURL == nil
+                ? String(localized: "Create a private read-only link for your AI.")
+                : String(localized: "Copy one prepared message and paste it into ChatGPT.")
+        case .ready:
+            connectionStatusSummary
+        }
     }
 
     private var connectionStatusSummary: String {
         if !model.healthAccessRequested {
-            return String(localized: "This destination is approved, but Apple Health permission is still a separate step.")
+            return String(localized: "Health permission is still needed.")
         }
         if model.deliveryStatusError != nil {
-            return String(localized: "This connection is approved, but delivery status is currently unavailable.")
+            return String(localized: "Freshness could not be checked.")
         }
         guard let delivery = model.deliveryStatus else {
-            return String(localized: "Daily Steps and Sleep can go here. Delivery has not been checked yet.")
+            return String(localized: "Sync once to check freshness.")
         }
         switch delivery.dataFreshness {
         case .current:
             return delivery.hasCurrentAgentRead
-                ? String(localized: "An approved AI fetched the latest server update.")
-                : String(localized: "Recent Steps and Sleep reached FitKiku. Paste the prepared message when you want your AI to read them.")
+                ? String(localized: "ChatGPT has the latest update.")
+                : String(localized: "Your iPhone is current. ChatGPT has not checked it yet.")
         case .stale:
-            return String(localized: "Daily Steps and Sleep are connected, but some recent delivery still needs attention.")
+            return String(localized: "Some recent data has not arrived yet.")
         case .unknown:
-            return String(localized: "Daily Steps and Sleep are connected, but recent delivery status is still unknown.")
+            return String(localized: "Freshness is not confirmed yet.")
         }
     }
 
-    private var deliveryDetailLabel: String {
-        guard model.healthAccessRequested else { return String(localized: "Health permission required") }
-        guard let delivery = model.deliveryStatus else {
-            return model.deliveryStatusError == nil
-                ? String(localized: "Not checked")
-                : String(localized: "Unavailable")
-        }
+    private var deliveryStatusTitle: String {
+        if model.deliveryStatusError != nil { return "Status unavailable" }
+        guard let delivery = model.deliveryStatus else { return "Not synced yet" }
         switch delivery.dataFreshness {
         case .current:
-            return delivery.hasCurrentAgentRead
-                ? String(localized: "Agent up to date")
-                : String(localized: "Waiting for agent")
+            return delivery.hasCurrentAgentRead ? "Up to date" : "Waiting for ChatGPT"
         case .stale:
-            return String(localized: "Needs attention")
+            return "Needs an update"
         case .unknown:
-            return String(localized: "Unknown")
+            return "Status unknown"
+        }
+    }
+
+    private var deliveryStatusSymbol: String {
+        if model.deliveryStatusError != nil { return "exclamationmark.triangle.fill" }
+        guard let delivery = model.deliveryStatus else { return "clock" }
+        switch delivery.dataFreshness {
+        case .current:
+            return delivery.hasCurrentAgentRead ? "checkmark.circle.fill" : "arrow.up.circle"
+        case .stale:
+            return "arrow.triangle.2.circlepath"
+        case .unknown:
+            return "questionmark.circle"
+        }
+    }
+
+    private var deliveryStatusColor: Color {
+        if model.deliveryStatusError != nil { return .orange }
+        guard let delivery = model.deliveryStatus else { return Color.fitKikuSecondaryText }
+        switch delivery.dataFreshness {
+        case .current:
+            return delivery.hasCurrentAgentRead ? .green : Color.fitKikuAccent
+        case .stale:
+            return .orange
+        case .unknown:
+            return Color.fitKikuSecondaryText
         }
     }
 
@@ -868,9 +755,33 @@ struct ContentView: View {
     }
 }
 
+private enum FitKikuPresentationStage {
+    case connect
+    case health
+    case share
+    case ready
+
+    var step: Int? {
+        switch self {
+        case .connect: 1
+        case .health: 2
+        case .share: 3
+        case .ready: nil
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .connect: "Connect ChatGPT"
+        case .health: "Allow steps and sleep"
+        case .share: "Send it to ChatGPT"
+        case .ready: "You're connected"
+        }
+    }
+}
+
 enum FitKikuChatPrompt {
     static let buttonTitle = "Copy for ChatGPT"
-    static let copiedStatus = "Prepared message copied. Paste it into ChatGPT."
 
     static func message(shareURL: URL) -> String {
         let format = NSLocalizedString(
@@ -924,6 +835,7 @@ enum FitKikuReviewPromptPolicy {
 }
 
 enum FitKikuLinks {
+    static let chatGPT = URL(string: "https://chatgpt.com/")!
     static let appStore = URL(string: "https://apps.apple.com/app/id6801516904")!
     static let review = URL(string: "https://apps.apple.com/app/id6801516904?action=write-review")!
     static let website = URL(string: "https://kikuai.dev/fitkiku/")!
@@ -1017,6 +929,28 @@ private struct SettingsView: View {
                     }
                 }
 
+                if !model.isPaired && !model.localCredentialCleanupPending {
+                    Section("More ways to connect") {
+                        NavigationLink {
+                            AdvancedConnectionView(
+                                model: model,
+                                closeSettings: { dismiss() }
+                            )
+                        } label: {
+                            Label {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Other AI or private server")
+                                    Text("Manual setup and recovery")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.fitKikuSecondaryText)
+                                }
+                            } icon: {
+                                Image(systemName: "link.badge.plus")
+                            }
+                        }
+                    }
+                }
+
                 Section("FitKiku") {
                     ShareLink(
                         item: FitKikuLinks.appStore,
@@ -1055,7 +989,7 @@ private struct SettingsView: View {
                 }
             }
         }
-        .tint(.teal)
+        .tint(Color.fitKikuAccent)
         .confirmationDialog(
             "Delete FitKiku account?",
             isPresented: $showDeleteConfirmation,
@@ -1134,6 +1068,90 @@ private struct SettingsView: View {
     }
 }
 
+private struct AdvancedConnectionView: View {
+    @ObservedObject var model: AppModel
+    let closeSettings: () -> Void
+
+    @State private var pastedPairLink = ""
+
+    var body: some View {
+        Form {
+            Section("Pair Link from another AI") {
+                Text("Use this only when your AI gave you a FitKiku Pair Link.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+
+                SecureField("Paste Pair Link", text: $pastedPairLink)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textContentType(.URL)
+                    .submitLabel(.go)
+                    .onSubmit(reviewPairLink)
+
+                Button("Review connection", action: reviewPairLink)
+                    .disabled(model.isBusy || pairLinkIsBlank)
+                    .frame(minHeight: 44)
+            }
+
+            Section("Private server recovery") {
+                Text("Use the server address and 8-digit code supplied by your FitKiku server.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.fitKikuSecondaryText)
+
+                TextField("https://fitkiku.example", text: $model.serverAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textContentType(.URL)
+                    .keyboardType(.URL)
+
+                TextField("8-digit code", text: $model.pairingCode)
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .onChange(of: model.pairingCode) { _, value in
+                        model.pairingCode = String(value.filter(\.isNumber).prefix(8))
+                    }
+
+                Button("Connect with recovery code") {
+                    Task {
+                        await model.pairLegacyManually()
+                        if model.isPaired {
+                            closeSettings()
+                        }
+                    }
+                }
+                .disabled(model.isBusy || model.pairingCode.count != 8)
+                .frame(minHeight: 44)
+            }
+
+            if let error = model.errorMessage {
+                Section {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+        .navigationTitle("Advanced connection")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var pairLinkIsBlank: Bool {
+        pastedPairLink.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func reviewPairLink() {
+        guard !pairLinkIsBlank, !model.isBusy else { return }
+        let input = pastedPairLink
+        pastedPairLink = ""
+        Task {
+            await model.loadPairingInput(input)
+            if model.pendingAgentConsent != nil || model.pendingLegacyPairing != nil {
+                closeSettings()
+            }
+        }
+    }
+}
+
 private extension CoverageState {
     var localizedLabel: String {
         switch self {
@@ -1148,6 +1166,14 @@ private extension CoverageState {
 }
 
 private extension Color {
+    static var fitKikuAccent: Color {
+        Color.primary
+    }
+
+    static var fitKikuPrimaryForeground: Color {
+        Color(.systemBackground)
+    }
+
     static var fitKikuSecondaryText: Color {
         Color.primary.opacity(0.68)
     }
@@ -1188,43 +1214,14 @@ private struct CompactDaySummaryRow: View {
             }
 
             if let summary {
-                Text(
-                    String(
-                        format: String(localized: "Coverage: Steps %@, Sleep %@"),
-                        locale: Locale.current,
-                        summary.stepsCoverage.localizedLabel,
-                        summary.sleepCoverage.localizedLabel
-                    )
-                )
-                .font(.caption)
-                .foregroundStyle(Color.fitKikuSecondaryText)
-
-                DisclosureGroup("Local Health details") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(
-                            String(
-                                format: String(localized: "Sleep intervals on this iPhone: %@"),
-                                locale: Locale.current,
-                                String(summary.normalized.sleepIntervals.count)
-                            )
-                        )
-                        Text(
-                            String(
-                                format: String(localized: "Health sources on this iPhone: %@"),
-                                locale: Locale.current,
-                                String(summary.normalized.sources.count)
-                            )
-                        )
-                        Text("Interval timestamps are not included in schema 1.1 uploads.")
-                    }
+                if summary.stepsCoverage != .complete || summary.sleepCoverage != .complete {
+                    Label("Some data is incomplete", systemImage: "exclamationmark.circle")
                     .font(.caption)
-                    .foregroundStyle(Color.fitKikuSecondaryText)
-                    .padding(.top, 8)
+                    .foregroundStyle(.orange)
                 }
-                .font(.caption.weight(.semibold))
             } else {
                 Label("No Health summary is available yet", systemImage: "clock")
-                .font(.caption)
+                    .font(.caption)
                 .foregroundStyle(Color.fitKikuSecondaryText)
             }
         }
@@ -1249,12 +1246,7 @@ private struct CompactDaySummaryRow: View {
                 .font(.headline.weight(.semibold))
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
-        .background(
-            Color(.tertiarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 12)
-        )
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
 }

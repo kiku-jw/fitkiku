@@ -429,6 +429,16 @@
         }
       }
     },
+    "Create a private read-only link for your AI.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создайте приватную ссылку только для чтения для вашего ИИ."
+          }
+        }
+      }
+    },
     "Create my private link": {
       "localizations": {
         "ru": {
@@ -2121,6 +2131,542 @@
           "stringUnit": {
             "state": "translated",
             "value": "На сервере уже актуальные данные с iPhone, но ассистент ещё не прочитал последнее обновление."
+          }
+        }
+      }
+    },
+    "Advanced connection": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дополнительное подключение"
+          }
+        }
+      }
+    },
+    "Allow steps and sleep": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разрешите шаги и сон"
+          }
+        }
+      }
+    },
+    "Anyone with the private link can read the summary until you revoke it.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Любой, у кого есть приватная ссылка, сможет читать сводку, пока вы её не отзовёте."
+          }
+        }
+      }
+    },
+    "ChatGPT has the latest update.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У ChatGPT свежие данные."
+          }
+        }
+      }
+    },
+    "Connected": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключено"
+          }
+        }
+      }
+    },
+    "Copied. Paste it into ChatGPT.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировано. Вставьте в ChatGPT."
+          }
+        }
+      }
+    },
+    "Copy again": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать ещё раз"
+          }
+        }
+      }
+    },
+    "Copy one prepared message and paste it into ChatGPT.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопируйте готовое сообщение и вставьте в ChatGPT."
+          }
+        }
+      }
+    },
+    "Copy setup message": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скопировать сообщение"
+          }
+        }
+      }
+    },
+    "Create your private link?": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать приватную ссылку?"
+          }
+        }
+      }
+    },
+    "Details": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подробнее"
+          }
+        }
+      }
+    },
+    "Freshness could not be checked.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось проверить актуальность."
+          }
+        }
+      }
+    },
+    "Freshness is not confirmed yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Актуальность пока не подтверждена."
+          }
+        }
+      }
+    },
+    "Get started": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Начать"
+          }
+        }
+      }
+    },
+    "Health permission comes next.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далее — разрешение «Здоровья»."
+          }
+        }
+      }
+    },
+    "Health permission is still needed.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужен доступ к «Здоровью»."
+          }
+        }
+      }
+    },
+    "How it works": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как это работает"
+          }
+        }
+      }
+    },
+    "Last sync": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последняя синхронизация"
+          }
+        }
+      }
+    },
+    "Latest data received": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Свежие данные получены"
+          }
+        }
+      }
+    },
+    "More ways to connect": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Другие способы подключения"
+          }
+        }
+      }
+    },
+    "Manual setup and recovery": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ручное подключение и восстановление"
+          }
+        }
+      }
+    },
+    "Needs an update": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужно обновить"
+          }
+        }
+      }
+    },
+    "No sign-up": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без регистрации"
+          }
+        }
+      }
+    },
+    "No login": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Без логина"
+          }
+        }
+      }
+    },
+    "Not synced yet": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё не синхронизировано"
+          }
+        }
+      }
+    },
+    "One quick setup. No more retyping steps and sleep.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Одна быстрая настройка — и не нужно переписывать шаги и сон."
+          }
+        }
+      }
+    },
+    "Open ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть ChatGPT"
+          }
+        }
+      }
+    },
+    "Other AI or private server": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Другой ИИ или свой сервер"
+          }
+        }
+      }
+    },
+    "Pair Link and recovery": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка подключения и восстановление"
+          }
+        }
+      }
+    },
+    "Pair Link from another AI": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ссылка подключения от другого ИИ"
+          }
+        }
+      }
+    },
+    "Private server recovery": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановление своего сервера"
+          }
+        }
+      }
+    },
+    "Read-only": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только чтение"
+          }
+        }
+      }
+    },
+    "Read-only. FitKiku never writes to Health.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только чтение. FitKiku ничего не записывает в «Здоровье»."
+          }
+        }
+      }
+    },
+    "Read-only. Revoke anytime in Settings.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Только чтение. Доступ можно отозвать в Настройках."
+          }
+        }
+      }
+    },
+    "Review the destination and data scope before connecting.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте адрес и доступные данные."
+          }
+        }
+      }
+    },
+    "Send it to ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправьте в ChatGPT"
+          }
+        }
+      }
+    },
+    "Some data is incomplete": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Часть данных неполная"
+          }
+        }
+      }
+    },
+    "Some recent data has not arrived yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Часть свежих данных ещё не пришла."
+          }
+        }
+      }
+    },
+    "Status unavailable": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус недоступен"
+          }
+        }
+      }
+    },
+    "Status unknown": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус неизвестен"
+          }
+        }
+      }
+    },
+    "Step %lld of 3": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Step %lld of 3"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шаг %lld из 3"
+          }
+        }
+      }
+    },
+    "Sync now": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить сейчас"
+          }
+        }
+      }
+    },
+    "Sync once to check freshness.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизируйте один раз, чтобы проверить актуальность."
+          }
+        }
+      }
+    },
+    "Syncing…": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация…"
+          }
+        }
+      }
+    },
+    "The AI service may retain the link and returned summary under its own policy.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервис ИИ может хранить ссылку и полученную сводку по своим правилам."
+          }
+        }
+      }
+    },
+    "The message contains your private link.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В сообщении есть ваша приватная ссылка."
+          }
+        }
+      }
+    },
+    "Up to date": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё актуально"
+          }
+        }
+      }
+    },
+    "Use the server address and 8-digit code supplied by your FitKiku server.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите адрес сервера и 8-значный код от вашего сервера FitKiku."
+          }
+        }
+      }
+    },
+    "Use this only when your AI gave you a FitKiku Pair Link.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Используйте только если ваш ИИ выдал ссылку подключения FitKiku."
+          }
+        }
+      }
+    },
+    "Waiting for ChatGPT": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ждём ChatGPT"
+          }
+        }
+      }
+    },
+    "Your AI will be able to read only these daily summaries.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш ИИ сможет читать только эти дневные сводки."
+          }
+        }
+      }
+    },
+    "Your iPhone is current. ChatGPT has not checked it yet.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные с iPhone свежие. ChatGPT ещё их не проверил."
+          }
+        }
+      }
+    },
+    "You're connected": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё подключено"
           }
         }
       }
