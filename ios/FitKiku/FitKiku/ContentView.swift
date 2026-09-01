@@ -245,9 +245,15 @@ struct ContentView: View {
 
                 DisclosureGroup("How it works") {
                     VStack(alignment: .leading, spacing: 10) {
+                        detailRow(
+                            "Destination",
+                            value: consent.baseURL.absoluteString,
+                            monospaced: true
+                        )
+                        detailRow("Retention", value: consent.preview.retentionDisclosure)
+                        detailRow("AI processing", value: consent.preview.aiProcessingDisclosure)
                         Text(NativeHealthDisclosure.outbound)
                         Text("Anyone with the private link can read the summary until you revoke it.")
-                        Text("The AI service may retain the link and returned summary under its own policy.")
                     }
                     .font(.footnote)
                     .foregroundStyle(Color.fitKikuSecondaryText)
