@@ -102,16 +102,18 @@ private final class ObserverEventProbe: @unchecked Sendable {
 final class SyncCoordinatorTests: XCTestCase {
     func testHealthObserverCompletesAfterSuccessfulCatchUp() async {
         let probe = ObserverEventProbe()
+        let completionExpectation = expectation(description: "HealthKit completion")
 
         HealthObserverUpdateHandler.handle(
             error: nil,
             onChange: { probe.record("change") },
-            completion: { probe.record("completion") }
+            completion: {
+                probe.record("completion")
+                completionExpectation.fulfill()
+            }
         )
 
-        for _ in 0 ..< 100 where probe.snapshot().count < 2 {
-            await Task.yield()
-        }
+        await fulfillment(of: [completionExpectation], timeout: 1)
         XCTAssertEqual(probe.snapshot(), ["change", "completion"])
     }
 
