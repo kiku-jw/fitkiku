@@ -371,6 +371,9 @@ release candidate.
       and both agent share surfaces. Paris/Toronto, spring/autumn DST, legacy
       Kyiv queues, 81/81 Simulator tests, and a signed generic-device build
       pass.
+- [x] English 1.2 release notes and reviewer deltas are drafted. They state
+      that FitKiku uses the system timezone rather than location access and
+      keeps that boundary stable until deliberate reconnection.
 - [ ] The 1.2 (5) candidate has not passed physical TestFlight acceptance,
       production deployment, App Store processing, legal/trader review, or EU
       territory readback. None may be inferred from the source checks.
