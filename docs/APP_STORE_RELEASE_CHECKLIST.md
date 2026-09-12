@@ -369,8 +369,12 @@ release candidate.
 - [x] The isolated 1.2 (5) source uses one validated connection-stable timezone
       across HealthKit collection, payload identity, guest validation, status,
       and both agent share surfaces. Paris/Toronto, spring/autumn DST, legacy
-      Kyiv queues, 81/81 Simulator tests, and a signed generic-device build
+      Kyiv queues, 82/82 Simulator tests, and a signed generic-device build
       pass.
+- [x] A locked observer wake stores only a non-health retry marker, performs no
+      Health read until protected data is available, then runs one bounded
+      idempotent catch-up. Revoked cleanup remains fail-closed, and the
+      health-bearing outbox keeps complete file protection.
 - [x] English 1.2 release notes and reviewer deltas are drafted. They state
       that FitKiku uses the system timezone rather than location access and
       keeps that boundary stable until deliberate reconnection.

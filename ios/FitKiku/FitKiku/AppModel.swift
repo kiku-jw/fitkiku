@@ -40,6 +40,7 @@ final class AppModel: ObservableObject {
     private let health: (any HealthDataReading)?
     private let coordinator: SyncCoordinator?
     private let protectedDataAvailable: @Sendable () async -> Bool
+    private let deferredObserverSyncStore: DeferredObserverSyncStore
     private let setupError: String?
     private let syntheticDemoRuntime: Bool
     private let systemTimezoneIdentifier: @Sendable () -> String
@@ -65,6 +66,7 @@ final class AppModel: ObservableObject {
         health = nil
         coordinator = nil
         protectedDataAvailable = { true }
+        deferredObserverSyncStore = DeferredObserverSyncStore(defaults: defaults)
         setupError = nil
         syntheticDemoRuntime = true
         systemTimezoneIdentifier = { AppDate.legacyTimezoneIdentifier }
@@ -94,6 +96,8 @@ final class AppModel: ObservableObject {
         deleteCredential = credentialCleanup ?? { try keychain.deleteCredential() }
         self.transport = transport
         self.protectedDataAvailable = protectedDataAvailable
+        let deferredObserverSyncStore = DeferredObserverSyncStore(defaults: defaults)
+        self.deferredObserverSyncStore = deferredObserverSyncStore
         syntheticDemoRuntime = false
         self.systemTimezoneIdentifier = systemTimezoneIdentifier
         let storedServerAddress = defaults.string(forKey: DefaultsKey.serverAddress) ?? ""
@@ -133,7 +137,8 @@ final class AppModel: ObservableObject {
                 Self.installObservers(
                     health: health,
                     coordinator: coordinator,
-                    protectedDataAvailable: protectedDataAvailable
+                    protectedDataAvailable: protectedDataAvailable,
+                    deferredObserverSyncStore: deferredObserverSyncStore
                 )
                 observersInstalled = true
             }
@@ -207,6 +212,33 @@ final class AppModel: ObservableObject {
             restored = false
             errorMessage = error.localizedDescription
         }
+    }
+
+    func retryDeferredObserverSyncAfterUnlock() async {
+        guard deferredObserverSyncStore.isPending(),
+              await protectedDataAvailable()
+        else { return }
+        guard !defaults.bool(forKey: DefaultsKey.localCredentialCleanupPending),
+              defaults.bool(forKey: DefaultsKey.healthAccessRequested)
+        else {
+            deferredObserverSyncStore.clear()
+            return
+        }
+        guard let coordinator,
+              let configuration = Self.launchConfiguration(
+                  keychain: keychain,
+                  serverAddress: defaults.string(forKey: DefaultsKey.serverAddress) ?? serverAddress,
+                  timezoneIdentifier: defaults.string(forKey: DefaultsKey.connectionTimezone)
+              )
+        else { return }
+
+        await coordinator.configure(configuration)
+        _ = await coordinator.synchronize(
+            lookbackDays: 2,
+            maxUploadAttempts: 1,
+            stopAfterPendingRecovery: true
+        )
+        deferredObserverSyncStore.clear()
     }
 
     func openPairLink(_ url: URL) async {
@@ -447,6 +479,7 @@ final class AppModel: ObservableObject {
         statusMessage = nil
         defer { isBusy = false }
         let results = await coordinator.synchronize(lookbackDays: 7)
+        deferredObserverSyncStore.clear()
         lastResults = results
         await refreshSummaries()
         await refreshDeliveryStatus()
@@ -552,6 +585,7 @@ final class AppModel: ObservableObject {
         }
 
         defaults.set(true, forKey: DefaultsKey.localCredentialCleanupPending)
+        deferredObserverSyncStore.clear()
         localCredentialCleanupPending = true
         isPaired = false
         clearPendingPairing()
@@ -712,6 +746,7 @@ final class AppModel: ObservableObject {
     private func finishLocalCredentialCleanup() {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
         defaults.removeObject(forKey: DefaultsKey.connectionTimezone)
+        deferredObserverSyncStore.clear()
         localCredentialCleanupPending = false
         connectionTimezoneIdentifier = nil
         privateShareURL = nil
@@ -752,7 +787,8 @@ final class AppModel: ObservableObject {
             Self.installObservers(
                 health: health,
                 coordinator: coordinator,
-                protectedDataAvailable: protectedDataAvailable
+                protectedDataAvailable: protectedDataAvailable,
+                deferredObserverSyncStore: deferredObserverSyncStore
             )
             observersInstalled = true
         }
@@ -767,15 +803,21 @@ final class AppModel: ObservableObject {
     private static func installObservers(
         health: any HealthDataReading,
         coordinator: SyncCoordinator,
-        protectedDataAvailable: @escaping @Sendable () async -> Bool
+        protectedDataAvailable: @escaping @Sendable () async -> Bool,
+        deferredObserverSyncStore: DeferredObserverSyncStore
     ) {
         health.installObservers { [weak coordinator] in
-            guard let coordinator, await protectedDataAvailable() else { return }
+            guard let coordinator else { return }
+            deferredObserverSyncStore.markPending()
+            guard await protectedDataAvailable() else {
+                return
+            }
             _ = await coordinator.synchronize(
                 lookbackDays: 2,
                 maxUploadAttempts: 1,
                 stopAfterPendingRecovery: true
             )
+            deferredObserverSyncStore.clear()
         }
     }
 

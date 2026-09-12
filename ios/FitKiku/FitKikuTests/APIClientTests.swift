@@ -96,6 +96,23 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
     }
 }
 
+private final class ProtectedDataAvailabilityProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var available: Bool
+
+    init(_ available: Bool) {
+        self.available = available
+    }
+
+    func isAvailable() -> Bool {
+        lock.withLock { available }
+    }
+
+    func setAvailable(_ available: Bool) {
+        lock.withLock { self.available = available }
+    }
+}
+
 private actor PairingTestTransport: AppTransport {
     private var previewCount = 0
     private var agentPairCount = 0
@@ -1112,17 +1129,19 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
-    func testObserverSkipsHealthReadsWhileProtectedDataIsUnavailable() async throws {
+    func testObserverDefersHealthReadsUntilProtectedDataIsAvailable() async throws {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
         defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
         let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
         try keychain.saveCredential("restored-device-credential")
         _ = try keychain.installationID()
         let transport = PairingTestTransport()
         let health = PairingTestHealthReader()
+        let protectedData = ProtectedDataAvailabilityProbe(false)
         let outboxDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(identifier, isDirectory: true)
         let model = AppModel(
@@ -1132,7 +1151,7 @@ final class APIClientTests: XCTestCase {
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
             stateStore: SyncStateStore(suiteName: suiteName),
-            protectedDataAvailable: { false }
+            protectedDataAvailable: { protectedData.isAvailable() }
         )
         defer {
             try? keychain.deleteCredential()
@@ -1142,10 +1161,70 @@ final class APIClientTests: XCTestCase {
 
         await health.triggerObserver()
 
+        let lockedReads = await health.dayReads()
+        let lockedCounts = await transport.counts()
+        XCTAssertEqual(lockedReads, 0)
+        XCTAssertEqual(lockedCounts.ingest, 0)
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        protectedData.setAvailable(true)
+        await model.retryDeferredObserverSyncAfterUnlock()
+
+        let unlockedReads = await health.dayReads()
+        let unlockedCounts = await transport.counts()
+        XCTAssertEqual(unlockedReads, 2)
+        XCTAssertEqual(unlockedCounts.ingest, 2)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        await model.retryDeferredObserverSyncAfterUnlock()
+        let repeatedReads = await health.dayReads()
+        let repeatedCounts = await transport.counts()
+        XCTAssertEqual(repeatedReads, 2)
+        XCTAssertEqual(repeatedCounts.ingest, 2)
+        XCTAssertFalse(model.isSyntheticDemo)
+    }
+
+    @MainActor
+    func testDeferredObserverRetryCannotSendAfterServerRevocation() async throws {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
+        defaults.set(true, forKey: "healthkit.local-credential-cleanup-pending")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("revoked-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let protectedData = ProtectedDataAvailabilityProbe(false)
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { protectedData.isAvailable() }
+        )
+        defer {
+            try? keychain.deleteCredential()
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: outboxDirectory)
+        }
+
+        await health.triggerObserver()
+        protectedData.setAvailable(true)
+        await model.retryDeferredObserverSyncAfterUnlock()
+
         let reads = await health.dayReads()
         let counts = await transport.counts()
         XCTAssertEqual(reads, 0)
         XCTAssertEqual(counts.ingest, 0)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
         XCTAssertFalse(model.isSyntheticDemo)
     }
 

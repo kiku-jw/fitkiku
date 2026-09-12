@@ -47,12 +47,13 @@ Proved so far:
 - ordinary foreground refresh preserves observer registration while explicit
   disconnect still stops it;
 - cold HealthKit wakes use launch-time pairing state without starting the
-  foreground UI catch-up, skip reads while protected data is unavailable, and
-  leave failed updates in the existing protected retry queue;
+  foreground UI catch-up; if protected data is unavailable, they persist only
+  a non-health retry marker and run one bounded catch-up after unlock while
+  failed uploads remain in the existing protected retry queue;
 - background work requests HealthKit's earliest supported opportunity but is
   bounded to two local days, one upload attempt per day, and an exactly-once
   completion deadline;
-- 81 deterministic simulator tests for pairing,
+- 82 deterministic simulator tests for pairing,
   private-link rotation and revocation, storage, canonical JSON, retries,
   coverage, freshness, cold launch, malformed responses, cross-zone dates, and
   DST boundaries, plus English and Russian consent-layout inspection;
