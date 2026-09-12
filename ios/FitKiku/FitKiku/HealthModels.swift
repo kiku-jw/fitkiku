@@ -121,11 +121,30 @@ struct HealthSnapshotPayload: Codable, Hashable, Sendable {
 
 struct DaySummary: Codable, Hashable, Sendable {
     let localDate: String
+    let timezone: String?
     let steps: Int?
     let stepsCoverage: CoverageState
     let sleepIntervals: [SleepIntervalPayload]
     let sleepCoverage: CoverageState
     let sources: [HealthSourcePayload]
+
+    init(
+        localDate: String,
+        timezone: String? = nil,
+        steps: Int?,
+        stepsCoverage: CoverageState,
+        sleepIntervals: [SleepIntervalPayload],
+        sleepCoverage: CoverageState,
+        sources: [HealthSourcePayload]
+    ) {
+        self.localDate = localDate
+        self.timezone = timezone
+        self.steps = steps
+        self.stepsCoverage = stepsCoverage
+        self.sleepIntervals = sleepIntervals
+        self.sleepCoverage = sleepCoverage
+        self.sources = sources
+    }
 
     var coverage: HealthCoverage {
         HealthCoverage(steps: stepsCoverage, sleep: sleepCoverage)
@@ -158,6 +177,7 @@ struct DaySummary: Codable, Hashable, Sendable {
         }
         return DaySummary(
             localDate: localDate,
+            timezone: timezoneIdentifier,
             steps: steps,
             stepsCoverage: stepsCoverage,
             sleepIntervals: intervals,
@@ -194,11 +214,15 @@ struct DaySummary: Codable, Hashable, Sendable {
         return Int(seconds / 60)
     }
 
+    var timezoneIdentifier: String {
+        AppDate.resolvedTimezoneIdentifier(timezone)
+    }
+
     func contentDigest() throws -> String {
         let content = DayContentIdentity(
             schemaVersion: "1.1",
             localDate: localDate,
-            timezone: AppDate.timezoneIdentifier,
+            timezone: timezoneIdentifier,
             metrics: HealthMetricsPayload(steps: steps, asleepMinutes: asleepMinutes),
             coverage: coverage,
             sleepIntervals: [],
@@ -218,7 +242,7 @@ struct DaySummary: Codable, Hashable, Sendable {
             schemaVersion: "1.1",
             deviceInstallationID: installationID,
             localDate: localDate,
-            timezone: AppDate.timezoneIdentifier,
+            timezone: timezoneIdentifier,
             syncRevision: revision,
             generatedAt: AppDate.timestamp(generatedAt),
             idempotencyKey: "native:\(installationScope):\(digest):r\(revision)",
@@ -269,24 +293,65 @@ struct DaySyncResult: Identifiable, Hashable, Sendable {
 }
 
 enum AppDate {
-    static let timezoneIdentifier = "Europe/Kyiv"
+    static let legacyTimezoneIdentifier = "Europe/Kyiv"
+    static let timezoneIdentifier = legacyTimezoneIdentifier
+
+    static var systemTimezoneIdentifier: String {
+        resolvedTimezoneIdentifier(TimeZone.autoupdatingCurrent.identifier, fallback: "UTC")
+    }
 
     static var calendar: Calendar {
+        calendar(timezoneIdentifier: legacyTimezoneIdentifier)
+    }
+
+    static func calendar(timezoneIdentifier: String) -> Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(identifier: timezoneIdentifier)!
+        calendar.timeZone = TimeZone(
+            identifier: resolvedTimezoneIdentifier(timezoneIdentifier)
+        )!
         return calendar
     }
 
-    static func dayStart(_ date: Date) -> Date {
-        calendar.startOfDay(for: date)
+    static func resolvedTimezoneIdentifier(
+        _ identifier: String?,
+        fallback: String = legacyTimezoneIdentifier
+    ) -> String {
+        guard let identifier,
+              !identifier.isEmpty,
+              identifier.count <= 64,
+              TimeZone(identifier: identifier) != nil
+        else {
+            return fallback
+        }
+        return identifier
     }
 
-    static func addingDays(_ value: Int, to date: Date) -> Date {
-        calendar.date(byAdding: .day, value: value, to: dayStart(date))!
+    static func dayStart(
+        _ date: Date,
+        timezoneIdentifier: String = legacyTimezoneIdentifier
+    ) -> Date {
+        calendar(timezoneIdentifier: timezoneIdentifier).startOfDay(for: date)
     }
 
-    static func localDate(_ date: Date) -> String {
+    static func addingDays(
+        _ value: Int,
+        to date: Date,
+        timezoneIdentifier: String = legacyTimezoneIdentifier
+    ) -> Date {
+        let calendar = calendar(timezoneIdentifier: timezoneIdentifier)
+        return calendar.date(
+            byAdding: .day,
+            value: value,
+            to: calendar.startOfDay(for: date)
+        )!
+    }
+
+    static func localDate(
+        _ date: Date,
+        timezoneIdentifier: String = legacyTimezoneIdentifier
+    ) -> String {
+        let calendar = calendar(timezoneIdentifier: timezoneIdentifier)
         let formatter = DateFormatter()
         formatter.calendar = calendar
         formatter.locale = Locale(identifier: "en_US_POSIX")

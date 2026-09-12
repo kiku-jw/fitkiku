@@ -43,10 +43,14 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
 
     func requestAuthorization() async throws {}
 
-    func readDay(_ dayStart: Date) async -> DaySummary {
+    func readDay(_ dayStart: Date, timezoneIdentifier: String) async -> DaySummary {
         lock.withLock { dayReadCount += 1 }
         return DaySummary(
-            localDate: AppDate.localDate(dayStart),
+            localDate: AppDate.localDate(
+                dayStart,
+                timezoneIdentifier: timezoneIdentifier
+            ),
+            timezone: timezoneIdentifier,
             steps: nil,
             stepsCoverage: .unknown,
             sleepIntervals: [],
@@ -108,6 +112,7 @@ private actor PairingTestTransport: AppTransport {
     private var shouldBlockDeviceStatus = false
     private var deviceStatusContinuation: CheckedContinuation<Void, Never>?
     private var lastPairTimezone: String?
+    private var ingestedTimezones: [String] = []
 
     func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
         "legacy-device-credential"
@@ -124,9 +129,10 @@ private actor PairingTestTransport: AppTransport {
     func ingest(
         baseURL _: URL,
         credential _: String,
-        snapshot _: HealthSnapshotPayload
+        snapshot: HealthSnapshotPayload
     ) async throws -> String {
         ingestCount += 1
+        ingestedTimezones.append(snapshot.timezone)
         if ingestFails {
             throw APIClientError.transport
         }
@@ -259,6 +265,10 @@ private actor PairingTestTransport: AppTransport {
 
     func pairedTimezone() -> String? {
         lastPairTimezone
+    }
+
+    func snapshotTimezones() -> [String] {
+        ingestedTimezones
     }
 }
 
@@ -451,7 +461,7 @@ final class APIClientTests: XCTestCase {
         )
         XCTAssertEqual(object["pairing_token"] as? String, validToken)
         XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
-        XCTAssertEqual(object["app_version"] as? String, "native/1.1")
+        XCTAssertEqual(object["app_version"] as? String, "native/1.2")
         XCTAssertEqual(object["timezone"] as? String, "America/Toronto")
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
@@ -890,15 +900,45 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
-    func testPublicGuestPairingUsesTheSnapshotTimezone() async throws {
-        let harness = try makeModelHarness()
+    func testPublicGuestPairingCapturesTheSystemTimezone() async throws {
+        let harness = try makeModelHarness(systemTimezoneIdentifier: "Europe/Paris")
         defer { harness.cleanup() }
 
         await harness.model.loadPairingInput(agentLink(token: validToken))
         await harness.model.approveAgentPairing()
 
         let pairedTimezone = await harness.transport.pairedTimezone()
-        XCTAssertEqual(pairedTimezone, AppDate.timezoneIdentifier)
+        XCTAssertEqual(pairedTimezone, "Europe/Paris")
+        XCTAssertEqual(harness.model.connectionTimezoneIdentifier, "Europe/Paris")
+    }
+
+    @MainActor
+    func testRestoredConnectionKeepsItsTimezoneAfterSystemTimezoneChanges() async throws {
+        let harness = try makeModelHarness(systemTimezoneIdentifier: "Europe/Paris")
+        defer { harness.cleanup() }
+
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+        await harness.model.requestHealthAccess()
+
+        let restartedModel = AppModel(
+            defaults: try XCTUnwrap(UserDefaults(suiteName: harness.suiteName)),
+            keychain: harness.keychain,
+            transport: harness.transport,
+            healthReader: harness.health,
+            outbox: try ProtectedOutbox(directory: harness.outboxDirectory),
+            stateStore: SyncStateStore(suiteName: harness.suiteName),
+            installHealthObserversAtLaunch: false,
+            protectedDataAvailable: { true },
+            systemTimezoneIdentifier: { "America/Toronto" }
+        )
+
+        await restartedModel.restore()
+
+        XCTAssertEqual(restartedModel.connectionTimezoneIdentifier, "Europe/Paris")
+        let timezones = await harness.transport.snapshotTimezones()
+        XCTAssertFalse(timezones.isEmpty)
+        XCTAssertTrue(timezones.allSatisfy { $0 == "Europe/Paris" })
     }
 
     @MainActor
@@ -1555,7 +1595,8 @@ final class APIClientTests: XCTestCase {
 
     @MainActor
     private func makeModelHarness(
-        protectedDataAvailable: @escaping @Sendable () async -> Bool = { true }
+        protectedDataAvailable: @escaping @Sendable () async -> Bool = { true },
+        systemTimezoneIdentifier: String = "Europe/Paris"
     ) throws -> ModelHarness {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
@@ -1573,7 +1614,8 @@ final class APIClientTests: XCTestCase {
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
             stateStore: SyncStateStore(suiteName: suiteName),
-            protectedDataAvailable: protectedDataAvailable
+            protectedDataAvailable: protectedDataAvailable,
+            systemTimezoneIdentifier: { systemTimezoneIdentifier }
         )
         return ModelHarness(
             model: model,

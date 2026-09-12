@@ -26,6 +26,19 @@ struct SyncConfiguration: Sendable {
     let baseURL: URL
     let credential: String
     let installationID: String
+    let timezoneIdentifier: String
+
+    init(
+        baseURL: URL,
+        credential: String,
+        installationID: String,
+        timezoneIdentifier: String = AppDate.legacyTimezoneIdentifier
+    ) {
+        self.baseURL = baseURL
+        self.credential = credential
+        self.installationID = installationID
+        self.timezoneIdentifier = AppDate.resolvedTimezoneIdentifier(timezoneIdentifier)
+    }
 }
 
 enum SyncPlanner {
@@ -85,7 +98,10 @@ actor SyncCoordinator {
         guard (1 ... 7).contains(lookbackDays) else {
             return [
                 DaySyncResult(
-                    localDate: AppDate.localDate(referenceDate),
+                    localDate: AppDate.localDate(
+                        referenceDate,
+                        timezoneIdentifier: configuration.timezoneIdentifier
+                    ),
                     outcome: .failed,
                     message: SyncCoordinatorError.invalidLookback.localizedDescription
                 )
@@ -94,7 +110,10 @@ actor SyncCoordinator {
         guard (1 ... 10).contains(maxUploadAttempts) else {
             return [
                 DaySyncResult(
-                    localDate: AppDate.localDate(referenceDate),
+                    localDate: AppDate.localDate(
+                        referenceDate,
+                        timezoneIdentifier: configuration.timezoneIdentifier
+                    ),
                     outcome: .failed,
                     message: SyncCoordinatorError.invalidUploadAttempts.localizedDescription
                 )
@@ -106,7 +125,11 @@ actor SyncCoordinator {
 
         var results: [DaySyncResult] = []
         for offset in 0 ..< lookbackDays {
-            let dayStart = AppDate.addingDays(-offset, to: referenceDate)
+            let dayStart = AppDate.addingDays(
+                -offset,
+                to: referenceDate,
+                timezoneIdentifier: configuration.timezoneIdentifier
+            )
             results.append(
                 await synchronizeDay(
                     dayStart,
@@ -139,7 +162,10 @@ actor SyncCoordinator {
         maxUploadAttempts: Int,
         stopAfterPendingRecovery: Bool
     ) async -> DaySyncResult {
-        let localDate = AppDate.localDate(dayStart)
+        let localDate = AppDate.localDate(
+            dayStart,
+            timezoneIdentifier: configuration.timezoneIdentifier
+        )
         var resumedOutcome: DaySyncResult.Outcome?
         do {
             if let pending = try await outbox.pending(for: localDate) {
@@ -159,7 +185,10 @@ actor SyncCoordinator {
                 }
             }
 
-            let summary = await health.readDay(dayStart)
+            let summary = await health.readDay(
+                dayStart,
+                timezoneIdentifier: configuration.timezoneIdentifier
+            )
             let confirmed = await stateStore.state(for: localDate)
             guard let pending = try SyncPlanner.nextPending(
                 summary: summary,
