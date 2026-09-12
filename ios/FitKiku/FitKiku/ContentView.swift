@@ -243,6 +243,20 @@ struct ContentView: View {
                     .font(.subheadline)
                     .foregroundStyle(Color.fitKikuSecondaryText)
 
+                Label {
+                    Text(
+                        String(
+                            format: String(localized: "Daily timezone: %@"),
+                            locale: Locale.current,
+                            model.pendingConnectionTimezoneIdentifier
+                        )
+                    )
+                } icon: {
+                    Image(systemName: "calendar")
+                }
+                .font(.subheadline)
+                .foregroundStyle(Color.fitKikuSecondaryText)
+
                 DisclosureGroup("How it works") {
                     VStack(alignment: .leading, spacing: 10) {
                         detailRow(
@@ -866,6 +880,9 @@ private struct SettingsView: View {
                 Section("Connection") {
                     if model.isPaired {
                         LabeledContent("Destination", value: connectionDestination)
+                        if let timezone = model.connectionTimezoneIdentifier {
+                            LabeledContent("Daily timezone", value: timezone)
+                        }
                         LabeledContent("Status") {
                             Text(settingsConnectionStatus)
                         }

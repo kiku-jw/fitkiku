@@ -16,6 +16,7 @@
 - **Minimum iOS:** 17.0
 - **Released version/build:** 1.0 (3)
 - **Current public source build:** 1.1 (4), not yet released
+- **Isolated EU-27 source candidate:** 1.2 (5), not merged or released
 - **Required upload SDK:** iOS 26 SDK or later from April 28, 2026
 - **Current local toolchain:** Xcode 26.6 / iOS SDK 26.5, verified 2026-08-23
 
@@ -365,6 +366,21 @@ release candidate.
       locale-dynamic grouping or recruit a broader-timezone validation cohort
       until date attribution, payloads, corrections, status, and DST behavior
       pass one explicit cross-zone contract.
+- [x] The isolated 1.2 (5) source uses one validated connection-stable timezone
+      across HealthKit collection, payload identity, guest validation, status,
+      and both agent share surfaces. Paris/Toronto, spring/autumn DST, legacy
+      Kyiv queues, 82/82 Simulator tests, and a signed generic-device build
+      pass.
+- [x] A locked observer wake stores only a non-health retry marker, performs no
+      Health read until protected data is available, then runs one bounded
+      idempotent catch-up. Revoked cleanup remains fail-closed, and the
+      health-bearing outbox keeps complete file protection.
+- [x] English 1.2 release notes and reviewer deltas are drafted. They state
+      that FitKiku uses the system timezone rather than location access and
+      keeps that boundary stable until deliberate reconnection.
+- [ ] The 1.2 (5) candidate has not passed physical TestFlight acceptance,
+      production deployment, App Store processing, legal/trader review, or EU
+      territory readback. None may be inferred from the source checks.
 
 Local export integrity, the live reviewer path, App Store Connect record,
 Apple build processing, reviewer-information delivery, review, and public

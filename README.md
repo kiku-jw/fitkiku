@@ -18,7 +18,9 @@ The current product reads only daily Steps and Sleep. Released version 1.0
 supports explicit agent pairing, visible delivery freshness, revocation, and
 anonymous in-app account deletion without modifying Apple Health. The next 1.1
 source candidate replaces the normal pairing ceremony with one app-created,
-private, revocable link and a prepared message for the user's AI.
+private, revocable link and a prepared message for the user's AI. The isolated
+1.2 source candidate adds a connection-stable daily timezone for broader
+regional use; it is not released.
 
 ## Current status
 
@@ -45,14 +47,16 @@ Proved so far:
 - ordinary foreground refresh preserves observer registration while explicit
   disconnect still stops it;
 - cold HealthKit wakes use launch-time pairing state without starting the
-  foreground UI catch-up, skip reads while protected data is unavailable, and
-  leave failed updates in the existing protected retry queue;
+  foreground UI catch-up; if protected data is unavailable, they persist only
+  a non-health retry marker and run one bounded catch-up after unlock while
+  failed uploads remain in the existing protected retry queue;
 - background work requests HealthKit's earliest supported opportunity but is
   bounded to two local days, one upload attempt per day, and an exactly-once
   completion deadline;
-- 74 deterministic simulator tests in both English and Russian for pairing,
+- 82 deterministic simulator tests for pairing,
   private-link rotation and revocation, storage, canonical JSON, retries,
-  coverage, freshness, cold launch, and malformed responses;
+  coverage, freshness, cold launch, malformed responses, cross-zone dates, and
+  DST boundaries, plus English and Russian consent-layout inspection;
 - a real owner-iPhone foreground catch-up from stale state through current
   server confirmation and a bounded existing-agent read;
 - live anonymous grant issuance with a credential-free Pair Link, denied reads
@@ -64,8 +68,8 @@ Still unproved for a public reliability claim:
 
 - reliable unattended background delivery;
 - recovery after reboot and force-quit;
-- locale-dynamic daily grouping; release 1.0 uses the `Europe/Kyiv` day
-  boundary for all summaries;
+- physical acceptance of the 1.2 connection-stable timezone candidate; release
+  1.0 still uses the `Europe/Kyiv` day boundary for all summaries;
 - onboarding and retention with people outside the owner setup;
 - an unaided external person's install -> private link -> current answer flow;
 - demand or payment for an optional hosted gateway.
@@ -113,8 +117,10 @@ Missing data is never converted to zero. FitKiku is not medical diagnosis,
 treatment, clearance, emergency care, or a built-in AI coach.
 
 Release 1.0 assigns each daily summary to the `Europe/Kyiv` calendar. Users
-whose ordinary day boundary differs should treat multi-timezone grouping as an
-unproved later capability, not as part of this release.
+whose ordinary day boundary differs should not infer support from the App Store
+territory alone. The isolated 1.2 candidate fixes one valid system timezone per
+connection and verifies Paris/Toronto plus spring/autumn DST behavior, but it
+still needs physical acceptance and release.
 
 ## Build the iOS app
 
@@ -158,6 +164,12 @@ The next 1.1 (4) source candidate passes 74/74 Simulator tests in English and
 74/74 in Russian. Its exact production deployment, physical ordinary-ChatGPT
 fetch/revoke sequence, signed archive, upload, Apple review, and release remain
 separate gates.
+
+The isolated 1.2 (5) EU technical candidate passes 81/81 Simulator tests,
+backend and PostgreSQL acceptance, representative cross-zone/DST checks, and a
+signed generic-device build with the privacy manifest and both HealthKit
+entitlements. It is not merged to `main`, deployed, installed, uploaded,
+accepted, or available in EU storefronts.
 
 The 1.0 connection flow uses the registered `fitkiku-health://` custom URL
 scheme. The client also parses a future exact

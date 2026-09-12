@@ -155,6 +155,32 @@ actor SyncStateStore {
     }
 }
 
+final class DeferredObserverSyncStore: @unchecked Sendable {
+    private let lock = NSLock()
+    private let defaults: UserDefaults
+    private let storageKey: String
+
+    init(
+        defaults: UserDefaults = .standard,
+        storageKey: String = "healthkit.deferred-observer-sync"
+    ) {
+        self.defaults = defaults
+        self.storageKey = storageKey
+    }
+
+    func isPending() -> Bool {
+        lock.withLock { defaults.bool(forKey: storageKey) }
+    }
+
+    func markPending() {
+        lock.withLock { defaults.set(true, forKey: storageKey) }
+    }
+
+    func clear() {
+        lock.withLock { defaults.removeObject(forKey: storageKey) }
+    }
+}
+
 actor ProtectedOutbox {
     private let directory: URL
 
