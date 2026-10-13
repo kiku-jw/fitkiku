@@ -105,6 +105,8 @@ private actor PairingTestTransport: AppTransport {
     private var revokeFails = true
     private var deleteFails = true
     private var ingestFails = false
+    private var statusFails = false
+    private var shareOperationsFail = false
     private var shouldBlockDeviceStatus = false
     private var deviceStatusContinuation: CheckedContinuation<Void, Never>?
     private var lastPairTimezone: String?
@@ -190,6 +192,7 @@ private actor PairingTestTransport: AppTransport {
         installationID _: String
     ) async throws -> DeviceDeliveryStatus {
         statusCount += 1
+        if statusFails { throw APIClientError.transport }
         if shouldBlockDeviceStatus {
             await withCheckedContinuation { continuation in
                 deviceStatusContinuation = continuation
@@ -213,6 +216,7 @@ private actor PairingTestTransport: AppTransport {
         installationID _: String
     ) async throws -> URL {
         shareRotateCount += 1
+        if shareOperationsFail { throw APIClientError.transport }
         return URL(
             string: "https://kikuai.dev/fitkiku-health/\(String(repeating: "b", count: 43))"
         )!
@@ -224,6 +228,7 @@ private actor PairingTestTransport: AppTransport {
         installationID _: String
     ) async throws -> String {
         shareRevokeCount += 1
+        if shareOperationsFail { throw APIClientError.transport }
         return "revoked"
     }
 
@@ -237,6 +242,14 @@ private actor PairingTestTransport: AppTransport {
 
     func failIngest() {
         ingestFails = true
+    }
+
+    func failShareOperations() {
+        shareOperationsFail = true
+    }
+
+    func setStatusFailure(_ failed: Bool) {
+        statusFails = failed
     }
 
     func blockDeviceStatus() {
@@ -259,6 +272,22 @@ private actor PairingTestTransport: AppTransport {
 
     func pairedTimezone() -> String? {
         lastPairTimezone
+    }
+}
+
+@MainActor
+private final class ShareStorageFault {
+    var failSave = false
+    var failCleanup = false
+
+    func save(_ url: URL, keychain: KeychainStore) throws {
+        if failSave { throw APIClientError.transport }
+        try keychain.savePrivateShareURL(url)
+    }
+
+    func cleanup(keychain: KeychainStore) throws {
+        if failCleanup { throw APIClientError.transport }
+        try keychain.deletePrivateShareURL()
     }
 }
 
@@ -1554,7 +1583,141 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
+    func testRemoteLinkFailuresPreserveStillValidStoredAndDisplayedURL() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+        await harness.model.beginHostedConnection()
+        await harness.model.approveAgentPairing()
+        let oldURL = try XCTUnwrap(harness.model.privateShareURL)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        await harness.transport.failShareOperations()
+
+        await harness.model.createPrivateShareLink()
+        XCTAssertEqual(harness.model.privateShareURL, oldURL)
+        XCTAssertEqual(try harness.keychain.privateShareURL(), oldURL)
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNotNil(harness.model.errorMessage)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.private-share-cleanup-pending"))
+
+        await harness.model.revokePrivateShareLink()
+        XCTAssertEqual(harness.model.privateShareURL, oldURL)
+        XCTAssertEqual(try harness.keychain.privateShareURL(), oldURL)
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNotNil(harness.model.errorMessage)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.private-share-cleanup-pending"))
+    }
+
+    @MainActor
+    func testFailedDeliveryRefreshDoesNotClaimCurrentReadAndRecovers() async throws {
+        let harness = try makeModelHarness()
+        defer { harness.cleanup() }
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+        XCTAssertTrue(harness.model.hasCurrentAgentRead)
+
+        await harness.transport.setStatusFailure(true)
+        await harness.model.refreshDeliveryStatus()
+        XCTAssertNotNil(harness.model.deliveryStatus) // Keep the previous receipt as history.
+        XCTAssertNotNil(harness.model.deliveryStatusError)
+        XCTAssertFalse(harness.model.hasCurrentAgentRead)
+
+        await harness.transport.setStatusFailure(false)
+        await harness.model.refreshDeliveryStatus()
+        XCTAssertNil(harness.model.deliveryStatusError)
+        XCTAssertTrue(harness.model.hasCurrentAgentRead)
+    }
+
+    @MainActor
+    func testRotatedLinkPersistenceFailureClearsOldURLAndCanRetry() async throws {
+        let fault = ShareStorageFault()
+        let harness = try makeModelHarness(shareStorageFault: fault)
+        defer { harness.cleanup() }
+        await harness.model.beginHostedConnection()
+        await harness.model.approveAgentPairing()
+        XCTAssertNotNil(harness.model.privateShareURL)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+
+        fault.failSave = true
+        await harness.model.createPrivateShareLink()
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNil(harness.model.privateShareURL)
+        XCTAssertNil(try harness.keychain.privateShareURL())
+        XCTAssertNotNil(harness.model.errorMessage)
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.private-share-cleanup-pending"))
+
+        fault.failSave = false
+        await harness.model.createPrivateShareLink()
+        XCTAssertNotNil(harness.model.privateShareURL)
+        XCTAssertEqual(try harness.keychain.privateShareURL(), harness.model.privateShareURL)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.private-share-cleanup-pending"))
+    }
+
+    @MainActor
+    func testInvalidatedLinkIsNotRestoredWhenKeychainCleanupFails() async throws {
+        let fault = ShareStorageFault()
+        let harness = try makeModelHarness(shareStorageFault: fault)
+        defer { harness.cleanup() }
+        await harness.model.beginHostedConnection()
+        await harness.model.approveAgentPairing()
+        let oldURL = try XCTUnwrap(harness.model.privateShareURL)
+
+        fault.failCleanup = true
+        await harness.model.createPrivateShareLink()
+        XCTAssertNil(harness.model.privateShareURL)
+        XCTAssertEqual(try harness.keychain.privateShareURL(), oldURL)
+        let restored = try makeRestoredModel(harness, shareStorageFault: fault)
+        await restored.restore()
+        XCTAssertTrue(restored.isPaired)
+        XCTAssertNil(restored.privateShareURL)
+
+        fault.failCleanup = false
+        await restored.createPrivateShareLink()
+        XCTAssertNotNil(restored.privateShareURL)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.private-share-cleanup-pending"))
+    }
+
+    @MainActor
+    func testRevokedLinkIsNotRestoredWhenKeychainCleanupFails() async throws {
+        let fault = ShareStorageFault()
+        let harness = try makeModelHarness(shareStorageFault: fault)
+        defer { harness.cleanup() }
+        await harness.model.beginHostedConnection()
+        await harness.model.approveAgentPairing()
+        fault.failCleanup = true
+        await harness.model.revokePrivateShareLink()
+        XCTAssertTrue(harness.model.isPaired)
+        XCTAssertNil(harness.model.privateShareURL)
+        XCTAssertNotNil(harness.model.errorMessage)
+        let restored = try makeRestoredModel(harness, shareStorageFault: fault)
+        await restored.restore()
+        XCTAssertTrue(restored.isPaired)
+        XCTAssertNil(restored.privateShareURL)
+    }
+
+    @MainActor
+    private func makeRestoredModel(
+        _ harness: ModelHarness,
+        shareStorageFault: ShareStorageFault
+    ) throws -> AppModel {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        return AppModel(
+            defaults: defaults,
+            keychain: harness.keychain,
+            shareURLPersistence: { try shareStorageFault.save($0, keychain: harness.keychain) },
+            shareURLCleanup: { try shareStorageFault.cleanup(keychain: harness.keychain) },
+            transport: harness.transport,
+            healthReader: harness.health,
+            outbox: try ProtectedOutbox(directory: harness.outboxDirectory),
+            stateStore: SyncStateStore(suiteName: harness.suiteName),
+            installHealthObserversAtLaunch: false,
+            protectedDataAvailable: { true }
+        )
+    }
+
+    @MainActor
     private func makeModelHarness(
+        shareStorageFault: ShareStorageFault? = nil,
         protectedDataAvailable: @escaping @Sendable () async -> Bool = { true }
     ) throws -> ModelHarness {
         let identifier = UUID().uuidString
@@ -1569,6 +1732,14 @@ final class APIClientTests: XCTestCase {
         let model = AppModel(
             defaults: defaults,
             keychain: keychain,
+            shareURLPersistence: { url in
+                if let shareStorageFault { try shareStorageFault.save(url, keychain: keychain) }
+                else { try keychain.savePrivateShareURL(url) }
+            },
+            shareURLCleanup: {
+                if let shareStorageFault { try shareStorageFault.cleanup(keychain: keychain) }
+                else { try keychain.deletePrivateShareURL() }
+            },
             transport: transport,
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
@@ -1597,6 +1768,7 @@ private struct ModelHarness {
 
     func cleanup() {
         try? keychain.deleteCredential()
+        try? keychain.deletePrivateShareURL()
         UserDefaults(suiteName: suiteName)?.removePersistentDomain(forName: suiteName)
         try? FileManager.default.removeItem(at: outboxDirectory)
     }

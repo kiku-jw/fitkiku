@@ -29,11 +29,14 @@ final class AppModel: ObservableObject {
         static let healthAccessRequested = "healthkit.access-requested"
         static let lastSyncAt = "healthkit.last-sync-at"
         static let localCredentialCleanupPending = "healthkit.local-credential-cleanup-pending"
+        static let privateShareCleanupPending = "healthkit.private-share-cleanup-pending"
     }
 
     private let defaults: UserDefaults
     private let keychain: KeychainStore
     private let deleteCredential: () throws -> Void
+    private let persistPrivateShareURL: (URL) throws -> Void
+    private let cleanupPrivateShareURL: () throws -> Void
     private let transport: any AppTransport
     private let health: (any HealthDataReading)?
     private let coordinator: SyncCoordinator?
@@ -46,6 +49,9 @@ final class AppModel: ObservableObject {
     private static let hostedServiceURL = URL(string: "https://fitkiku-origin.kikuai.dev")!
 
     var isSyntheticDemo: Bool { syntheticDemoRuntime }
+    var hasCurrentAgentRead: Bool {
+        deliveryStatusError == nil && deliveryStatus?.hasCurrentAgentRead == true
+    }
     var canDeleteAccount: Bool { isPaired && deliveryStatus?.canDeleteAccount == true }
     var demoScrollTarget: String?
     var shouldExpandDeliveryForDemo = false
@@ -55,6 +61,8 @@ final class AppModel: ObservableObject {
         self.defaults = defaults
         keychain = KeychainStore(service: "com.kikuai.fitkiku.synthetic-demo")
         deleteCredential = {}
+        persistPrivateShareURL = { _ in }
+        cleanupPrivateShareURL = {}
         transport = SyntheticDemoTransport()
         health = nil
         coordinator = nil
@@ -69,6 +77,8 @@ final class AppModel: ObservableObject {
         defaults: UserDefaults = .standard,
         keychain: KeychainStore = KeychainStore(),
         credentialCleanup: (() throws -> Void)? = nil,
+        shareURLPersistence: ((URL) throws -> Void)? = nil,
+        shareURLCleanup: (() throws -> Void)? = nil,
         transport: any AppTransport = APIClient(),
         healthReader: (any HealthDataReading)? = nil,
         outbox: ProtectedOutbox? = nil,
@@ -81,6 +91,8 @@ final class AppModel: ObservableObject {
         self.defaults = defaults
         self.keychain = keychain
         deleteCredential = credentialCleanup ?? { try keychain.deleteCredential() }
+        persistPrivateShareURL = shareURLPersistence ?? { try keychain.savePrivateShareURL($0) }
+        cleanupPrivateShareURL = shareURLCleanup ?? { try keychain.deletePrivateShareURL() }
         self.transport = transport
         self.protectedDataAvailable = protectedDataAvailable
         syntheticDemoRuntime = false
@@ -170,7 +182,13 @@ final class AppModel: ObservableObject {
                 )
             )
             isPaired = true
-            privateShareURL = try keychain.privateShareURL()
+            if defaults.bool(forKey: DefaultsKey.privateShareCleanupPending) {
+                // Server rotation/revocation may have invalidated the persisted URL.
+                privateShareURL = nil
+                try? cleanupPrivateShareURL()
+            } else {
+                privateShareURL = try keychain.privateShareURL()
+            }
             if healthAccessRequested {
                 await registerObservers()
             }
@@ -354,8 +372,9 @@ final class AppModel: ObservableObject {
                 installationID: installationID
             )
             guard outcome == "revoked" else { throw APIClientError.invalidResponse }
-            privateShareURL = nil
-            try keychain.deletePrivateShareURL()
+            invalidateStoredPrivateShareURL()
+            try cleanupPrivateShareURL()
+            defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
             statusMessage = String(localized: "Private AI link revoked. The iPhone connection remains active.")
         } catch {
             errorMessage = error.localizedDescription
@@ -625,8 +644,8 @@ final class AppModel: ObservableObject {
             )
         )
         isPaired = true
-        privateShareURL = nil
-        try? keychain.deletePrivateShareURL()
+        invalidateStoredPrivateShareURL()
+        try? cleanupPrivateShareURL()
         await refreshDeliveryStatus()
         if healthAccessRequested {
             await registerObservers()
@@ -668,6 +687,7 @@ final class AppModel: ObservableObject {
 
     private func finishLocalCredentialCleanup() {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
+        defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
         localCredentialCleanupPending = false
         privateShareURL = nil
     }
@@ -683,7 +703,12 @@ final class AppModel: ObservableObject {
         }
         observersInstalled = false
         try deleteCredential()
-        try keychain.deletePrivateShareURL()
+        try cleanupPrivateShareURL()
+    }
+
+    private func invalidateStoredPrivateShareURL() {
+        defaults.set(true, forKey: DefaultsKey.privateShareCleanupPending)
+        privateShareURL = nil
     }
 
     private func rotatePrivateShareLinkUsingStoredDevice() async throws {
@@ -697,8 +722,12 @@ final class AppModel: ObservableObject {
             credential: credential,
             installationID: installationID
         )
-        try keychain.savePrivateShareURL(shareURL)
+        // Rotation succeeded remotely: the old URL must no longer be copyable.
+        invalidateStoredPrivateShareURL()
+        try cleanupPrivateShareURL()
+        try persistPrivateShareURL(shareURL)
         privateShareURL = shareURL
+        defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
     }
 
     private func registerObservers() async {
