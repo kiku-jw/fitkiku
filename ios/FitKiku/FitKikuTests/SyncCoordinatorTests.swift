@@ -6,9 +6,13 @@ import XCTest
 private actor FakeHealthReader: HealthDataReading {
     func requestAuthorization() async throws {}
 
-    func readDay(_ dayStart: Date) async -> DaySummary {
+    func readDay(_ dayStart: Date, timezoneIdentifier: String) async -> DaySummary {
         DaySummary(
-            localDate: AppDate.localDate(dayStart),
+            localDate: AppDate.localDate(
+                dayStart,
+                timezoneIdentifier: timezoneIdentifier
+            ),
+            timezone: timezoneIdentifier,
             steps: 3210,
             stepsCoverage: .complete,
             sleepIntervals: [],

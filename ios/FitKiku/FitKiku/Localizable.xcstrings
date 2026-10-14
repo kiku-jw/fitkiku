@@ -43,6 +43,32 @@
         }
       }
     },
+    "Daily timezone": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Часовой пояс суток"
+          }
+        }
+      }
+    },
+    "Daily timezone: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Daily timezone: %1$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Часовой пояс суток: %1$@"
+          }
+        }
+      }
+    },
     "A legacy recovery link was loaded. Review the server before pairing.": {
       "localizations": {
         "ru": {

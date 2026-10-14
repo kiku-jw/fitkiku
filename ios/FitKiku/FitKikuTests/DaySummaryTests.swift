@@ -192,6 +192,8 @@ final class DaySummaryTests: XCTestCase {
             "Copy for ChatGPT",
             "Open ChatGPT",
             "You're connected",
+            "Daily timezone",
+            "Daily timezone: %@",
         ]
 
         for key in keys {
@@ -259,6 +261,56 @@ final class DaySummaryTests: XCTestCase {
                 dayStart: targetDay
             )
         )
+    }
+
+    func testParisAndTorontoCalendarUsesDSTLengthDays() throws {
+        for (timezone, timestamp, hours) in [
+            ("Europe/Paris", "2026-03-29T12:00:00Z", 23),
+            ("Europe/Paris", "2026-10-25T12:00:00Z", 25),
+            ("America/Toronto", "2026-03-08T12:00:00Z", 23),
+            ("America/Toronto", "2026-11-01T12:00:00Z", 25),
+        ] {
+            let reference = try XCTUnwrap(AppDate.parseTimestamp(timestamp))
+            let start = AppDate.dayStart(reference, timezoneIdentifier: timezone)
+            let next = AppDate.addingDays(1, to: reference, timezoneIdentifier: timezone)
+            XCTAssertEqual(next.timeIntervalSince(start), Double(hours * 60 * 60), timezone)
+        }
+    }
+
+    func testSameInstantHasDifferentParisAndTorontoLocalDates() throws {
+        let instant = try XCTUnwrap(AppDate.parseTimestamp("2026-03-29T22:30:00Z"))
+
+        XCTAssertEqual(
+            AppDate.localDate(instant, timezoneIdentifier: "Europe/Paris"),
+            "2026-03-30"
+        )
+        XCTAssertEqual(
+            AppDate.localDate(instant, timezoneIdentifier: "America/Toronto"),
+            "2026-03-29"
+        )
+    }
+
+    func testContentDigestSeparatesDifferentDailyTimezones() throws {
+        let paris = DaySummary(
+            localDate: "2026-03-30",
+            timezone: "Europe/Paris",
+            steps: 5000,
+            stepsCoverage: .complete,
+            sleepIntervals: [],
+            sleepCoverage: .unknown,
+            sources: []
+        )
+        let toronto = DaySummary(
+            localDate: "2026-03-30",
+            timezone: "America/Toronto",
+            steps: 5000,
+            stepsCoverage: .complete,
+            sleepIntervals: [],
+            sleepCoverage: .unknown,
+            sources: []
+        )
+
+        XCTAssertNotEqual(try paris.contentDigest(), try toronto.contentDigest())
     }
 
     func testPlannerUsesMonotonicRevisionAndStableContentKey() throws {
@@ -382,6 +434,7 @@ final class DaySummaryTests: XCTestCase {
         )
 
         let pending = try CanonicalJSON.decoder().decode(PendingDay.self, from: legacyJSON)
+        XCTAssertEqual(pending.summary.timezoneIdentifier, AppDate.legacyTimezoneIdentifier)
         XCTAssertEqual(pending.revision, 4)
         XCTAssertEqual(pending.summary.sleepIntervals.count, 1)
         XCTAssertEqual(pending.summary.asleepMinutes, 90)

@@ -21,6 +21,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var deliveryStatus: DeviceDeliveryStatus?
     @Published private(set) var deliveryStatusError: String?
     @Published private(set) var privateShareURL: URL?
+    @Published private(set) var connectionTimezoneIdentifier: String?
     @Published private(set) var statusMessage: String?
     @Published private(set) var errorMessage: String?
 
@@ -29,6 +30,7 @@ final class AppModel: ObservableObject {
         static let healthAccessRequested = "healthkit.access-requested"
         static let lastSyncAt = "healthkit.last-sync-at"
         static let localCredentialCleanupPending = "healthkit.local-credential-cleanup-pending"
+        static let connectionTimezone = "healthkit.connection-timezone"
         static let privateShareCleanupPending = "healthkit.private-share-cleanup-pending"
     }
 
@@ -41,8 +43,10 @@ final class AppModel: ObservableObject {
     private let health: (any HealthDataReading)?
     private let coordinator: SyncCoordinator?
     private let protectedDataAvailable: @Sendable () async -> Bool
+    private let deferredObserverSyncStore: DeferredObserverSyncStore
     private let setupError: String?
     private let syntheticDemoRuntime: Bool
+    private let systemTimezoneIdentifier: @Sendable () -> String
     private var restored = false
     private var observersInstalled = false
 
@@ -53,6 +57,9 @@ final class AppModel: ObservableObject {
         deliveryStatusError == nil && deliveryStatus?.hasCurrentAgentRead == true
     }
     var canDeleteAccount: Bool { isPaired && deliveryStatus?.canDeleteAccount == true }
+    var pendingConnectionTimezoneIdentifier: String {
+        pendingAgentConsent?.timezoneIdentifier ?? AppDate.legacyTimezoneIdentifier
+    }
     var demoScrollTarget: String?
     var shouldExpandDeliveryForDemo = false
 
@@ -67,9 +74,12 @@ final class AppModel: ObservableObject {
         health = nil
         coordinator = nil
         protectedDataAvailable = { true }
+        deferredObserverSyncStore = DeferredObserverSyncStore(defaults: defaults)
         setupError = nil
         syntheticDemoRuntime = true
+        systemTimezoneIdentifier = { AppDate.legacyTimezoneIdentifier }
         serverAddress = ""
+        connectionTimezoneIdentifier = nil
     }
     #endif
 
@@ -86,6 +96,9 @@ final class AppModel: ObservableObject {
         installHealthObserversAtLaunch: Bool = true,
         protectedDataAvailable: @escaping @Sendable () async -> Bool = {
             await MainActor.run { UIApplication.shared.isProtectedDataAvailable }
+        },
+        systemTimezoneIdentifier: @escaping @Sendable () -> String = {
+            AppDate.systemTimezoneIdentifier
         }
     ) {
         self.defaults = defaults
@@ -95,9 +108,16 @@ final class AppModel: ObservableObject {
         cleanupPrivateShareURL = shareURLCleanup ?? { try keychain.deletePrivateShareURL() }
         self.transport = transport
         self.protectedDataAvailable = protectedDataAvailable
+        let deferredObserverSyncStore = DeferredObserverSyncStore(defaults: defaults)
+        self.deferredObserverSyncStore = deferredObserverSyncStore
         syntheticDemoRuntime = false
+        self.systemTimezoneIdentifier = systemTimezoneIdentifier
         let storedServerAddress = defaults.string(forKey: DefaultsKey.serverAddress) ?? ""
+        let storedConnectionTimezone = defaults.string(forKey: DefaultsKey.connectionTimezone)
         serverAddress = storedServerAddress
+        connectionTimezoneIdentifier = storedConnectionTimezone.map {
+            AppDate.resolvedTimezoneIdentifier($0)
+        }
 
         do {
             let health: any HealthDataReading
@@ -119,7 +139,8 @@ final class AppModel: ObservableObject {
                     ? nil
                     : Self.launchConfiguration(
                         keychain: keychain,
-                        serverAddress: storedServerAddress
+                        serverAddress: storedServerAddress,
+                        timezoneIdentifier: storedConnectionTimezone
                     )
             )
             self.coordinator = coordinator
@@ -128,7 +149,8 @@ final class AppModel: ObservableObject {
                 Self.installObservers(
                     health: health,
                     coordinator: coordinator,
-                    protectedDataAvailable: protectedDataAvailable
+                    protectedDataAvailable: protectedDataAvailable,
+                    deferredObserverSyncStore: deferredObserverSyncStore
                 )
                 observersInstalled = true
             }
@@ -174,11 +196,18 @@ final class AppModel: ObservableObject {
             }
             let baseURL = try APIClient.validatedBaseURL(serverAddress)
             let installationID = try keychain.installationID()
+            let timezoneIdentifier = connectionTimezoneIdentifier
+                ?? AppDate.legacyTimezoneIdentifier
+            if connectionTimezoneIdentifier == nil {
+                connectionTimezoneIdentifier = timezoneIdentifier
+                defaults.set(timezoneIdentifier, forKey: DefaultsKey.connectionTimezone)
+            }
             await coordinator.configure(
                 SyncConfiguration(
                     baseURL: baseURL,
                     credential: credential,
-                    installationID: installationID
+                    installationID: installationID,
+                    timezoneIdentifier: timezoneIdentifier
                 )
             )
             isPaired = true
@@ -201,6 +230,36 @@ final class AppModel: ObservableObject {
             restored = false
             errorMessage = error.localizedDescription
         }
+    }
+
+    func retryDeferredObserverSyncAfterUnlock() async {
+        guard deferredObserverSyncStore.isPending(),
+              await protectedDataAvailable()
+        else { return }
+        guard !defaults.bool(forKey: DefaultsKey.localCredentialCleanupPending),
+              defaults.bool(forKey: DefaultsKey.healthAccessRequested)
+        else {
+            deferredObserverSyncStore.clear()
+            return
+        }
+        guard let coordinator,
+              let configuration = Self.launchConfiguration(
+                  keychain: keychain,
+                  serverAddress: defaults.string(forKey: DefaultsKey.serverAddress) ?? serverAddress,
+                  timezoneIdentifier: defaults.string(forKey: DefaultsKey.connectionTimezone)
+              )
+        else { return }
+
+        await coordinator.configure(configuration)
+        guard let revision = deferredObserverSyncStore.pendingRevision() else { return }
+        let results = await coordinator.synchronize(
+            lookbackDays: 2,
+            maxUploadAttempts: 1,
+            stopAfterPendingRecovery: true
+        )
+        Self.finishDeferredObserverSync(
+            results, revision: revision, store: deferredObserverSyncStore
+        )
     }
 
     func openPairLink(_ url: URL) async {
@@ -232,6 +291,7 @@ final class AppModel: ObservableObject {
                 baseURL: link.baseURL,
                 pairingToken: link.pairingToken,
                 preview: preview,
+                timezoneIdentifier: connectionTimezone(for: preview),
                 createsPrivateShareLink: true
             )
             statusMessage = String(localized: "Review the private read-only connection before approving.")
@@ -271,6 +331,7 @@ final class AppModel: ObservableObject {
                     baseURL: link.baseURL,
                     pairingToken: link.pairingToken,
                     preview: preview,
+                    timezoneIdentifier: connectionTimezone(for: preview),
                     createsPrivateShareLink: false
                 )
                 statusMessage = String(localized: "Review the claimed agent and disclosures before approving.")
@@ -306,18 +367,20 @@ final class AppModel: ObservableObject {
 
         do {
             let installationID = try keychain.installationID()
+            let timezoneIdentifier = consent.timezoneIdentifier
             let credential = try await transport.pairAgent(
                 baseURL: consent.baseURL,
                 pairingToken: consent.pairingToken,
                 installationID: installationID,
                 timezone: consent.preview.requiresTimezone == true
-                    ? AppDate.timezoneIdentifier
+                    ? timezoneIdentifier
                     : nil
             )
             try await completePairing(
                 baseURL: consent.baseURL,
                 credential: credential,
                 installationID: installationID,
+                timezoneIdentifier: timezoneIdentifier,
                 coordinator: coordinator
             )
             clearPendingPairing()
@@ -437,7 +500,13 @@ final class AppModel: ObservableObject {
         errorMessage = nil
         statusMessage = nil
         defer { isBusy = false }
+        let pendingRevision = deferredObserverSyncStore.pendingRevision()
         let results = await coordinator.synchronize(lookbackDays: 7)
+        if let pendingRevision {
+            Self.finishDeferredObserverSync(
+                results, revision: pendingRevision, store: deferredObserverSyncStore
+            )
+        }
         lastResults = results
         await refreshSummaries()
         await refreshDeliveryStatus()
@@ -543,6 +612,7 @@ final class AppModel: ObservableObject {
         }
 
         defaults.set(true, forKey: DefaultsKey.localCredentialCleanupPending)
+        deferredObserverSyncStore.clear()
         localCredentialCleanupPending = true
         isPaired = false
         clearPendingPairing()
@@ -617,6 +687,7 @@ final class AppModel: ObservableObject {
                 baseURL: baseURL,
                 credential: credential,
                 installationID: installationID,
+                timezoneIdentifier: AppDate.legacyTimezoneIdentifier,
                 coordinator: coordinator
             )
             pairingCode = ""
@@ -631,16 +702,20 @@ final class AppModel: ObservableObject {
         baseURL: URL,
         credential: String,
         installationID: String,
+        timezoneIdentifier: String,
         coordinator: SyncCoordinator
     ) async throws {
         try keychain.saveCredential(credential)
         defaults.set(baseURL.absoluteString, forKey: DefaultsKey.serverAddress)
+        defaults.set(timezoneIdentifier, forKey: DefaultsKey.connectionTimezone)
         serverAddress = baseURL.absoluteString
+        connectionTimezoneIdentifier = timezoneIdentifier
         await coordinator.configure(
             SyncConfiguration(
                 baseURL: baseURL,
                 credential: credential,
-                installationID: installationID
+                installationID: installationID,
+                timezoneIdentifier: timezoneIdentifier
             )
         )
         isPaired = true
@@ -656,6 +731,16 @@ final class AppModel: ObservableObject {
     private func clearPendingPairing() {
         pendingAgentConsent = nil
         pendingLegacyPairing = nil
+    }
+
+    private func connectionTimezone(for preview: AgentGrantPreview) -> String {
+        guard preview.requiresTimezone == true else {
+            return AppDate.legacyTimezoneIdentifier
+        }
+        return AppDate.resolvedTimezoneIdentifier(
+            systemTimezoneIdentifier(),
+            fallback: "UTC"
+        )
     }
 
     func refreshDeliveryStatus() async {
@@ -687,8 +772,11 @@ final class AppModel: ObservableObject {
 
     private func finishLocalCredentialCleanup() {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
+        defaults.removeObject(forKey: DefaultsKey.connectionTimezone)
+        deferredObserverSyncStore.clear()
         defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
         localCredentialCleanupPending = false
+        connectionTimezoneIdentifier = nil
         privateShareURL = nil
     }
 
@@ -736,7 +824,8 @@ final class AppModel: ObservableObject {
             Self.installObservers(
                 health: health,
                 coordinator: coordinator,
-                protectedDataAvailable: protectedDataAvailable
+                protectedDataAvailable: protectedDataAvailable,
+                deferredObserverSyncStore: deferredObserverSyncStore
             )
             observersInstalled = true
         }
@@ -751,21 +840,44 @@ final class AppModel: ObservableObject {
     private static func installObservers(
         health: any HealthDataReading,
         coordinator: SyncCoordinator,
-        protectedDataAvailable: @escaping @Sendable () async -> Bool
+        protectedDataAvailable: @escaping @Sendable () async -> Bool,
+        deferredObserverSyncStore: DeferredObserverSyncStore
     ) {
         health.installObservers { [weak coordinator] in
-            guard let coordinator, await protectedDataAvailable() else { return }
-            _ = await coordinator.synchronize(
+            guard let coordinator else { return }
+            let revision = deferredObserverSyncStore.markPending()
+            guard await protectedDataAvailable() else {
+                return
+            }
+            let results = await coordinator.synchronize(
                 lookbackDays: 2,
                 maxUploadAttempts: 1,
                 stopAfterPendingRecovery: true
             )
+            finishDeferredObserverSync(
+                results, revision: revision, store: deferredObserverSyncStore
+            )
         }
+    }
+
+    private nonisolated static func finishDeferredObserverSync(
+        _ results: [DaySyncResult],
+        revision: UInt64,
+        store: DeferredObserverSyncStore
+    ) {
+        // Recovery-only uploads have not collected a newer Health notification yet.
+        guard !results.isEmpty,
+              !results.contains(where: {
+                  $0.outcome == .failed || $0.outcome == .queued || $0.recoveredPendingOnly
+              })
+        else { return }
+        store.clear(ifUnchangedSince: revision)
     }
 
     private static func launchConfiguration(
         keychain: KeychainStore,
-        serverAddress: String
+        serverAddress: String,
+        timezoneIdentifier: String?
     ) -> SyncConfiguration? {
         guard !serverAddress.isEmpty else { return nil }
         do {
@@ -773,7 +885,8 @@ final class AppModel: ObservableObject {
             return SyncConfiguration(
                 baseURL: try APIClient.validatedBaseURL(serverAddress),
                 credential: credential,
-                installationID: try keychain.installationID()
+                installationID: try keychain.installationID(),
+                timezoneIdentifier: AppDate.resolvedTimezoneIdentifier(timezoneIdentifier)
             )
         } catch {
             return nil
@@ -794,8 +907,20 @@ final class AppModel: ObservableObject {
 
     private func refreshSummaries(referenceDate: Date = Date()) async {
         guard let health else { return }
-        async let todayRead = health.readDay(AppDate.dayStart(referenceDate))
-        async let yesterdayRead = health.readDay(AppDate.addingDays(-1, to: referenceDate))
+        let timezoneIdentifier = connectionTimezoneIdentifier
+            ?? AppDate.resolvedTimezoneIdentifier(systemTimezoneIdentifier(), fallback: "UTC")
+        async let todayRead = health.readDay(
+            AppDate.dayStart(referenceDate, timezoneIdentifier: timezoneIdentifier),
+            timezoneIdentifier: timezoneIdentifier
+        )
+        async let yesterdayRead = health.readDay(
+            AppDate.addingDays(
+                -1,
+                to: referenceDate,
+                timezoneIdentifier: timezoneIdentifier
+            ),
+            timezoneIdentifier: timezoneIdentifier
+        )
         let (today, yesterday) = await (todayRead, yesterdayRead)
         self.today = today
         self.yesterday = yesterday
@@ -849,6 +974,7 @@ extension AppModel {
                     aiProcessingDisclosure: "Your approved agent may send these summaries to its configured AI provider.",
                     requiresTimezone: true
                 ),
+                timezoneIdentifier: AppDate.legacyTimezoneIdentifier,
                 createsPrivateShareLink: true
             )
         case .current:
@@ -884,6 +1010,7 @@ extension AppModel {
         let previousDate = Date(timeIntervalSince1970: 1_775_513_600)
         serverAddress = "https://health.example"
         isPaired = true
+        connectionTimezoneIdentifier = AppDate.legacyTimezoneIdentifier
         privateShareURL = URL(
             string: "https://kikuai.dev/fitkiku-health/demo-not-a-real-link"
         )
@@ -1030,6 +1157,7 @@ struct PendingAgentConsent: Equatable, Sendable {
     let baseURL: URL
     let pairingToken: String
     let preview: AgentGrantPreview
+    let timezoneIdentifier: String
     let createsPrivateShareLink: Bool
 }
 

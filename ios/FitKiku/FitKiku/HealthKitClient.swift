@@ -19,7 +19,7 @@ enum HealthKitClientError: LocalizedError {
 
 protocol HealthDataReading: Sendable {
     func requestAuthorization() async throws
-    func readDay(_ dayStart: Date) async -> DaySummary
+    func readDay(_ dayStart: Date, timezoneIdentifier: String) async -> DaySummary
     func installObservers(onChange: @escaping @Sendable () async -> Void)
     func enableBackgroundDelivery() async throws
     func stopObservers() async
@@ -69,13 +69,26 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         }
     }
 
-    func readDay(_ dayStart: Date) async -> DaySummary {
-        let normalizedStart = AppDate.dayStart(dayStart)
-        async let stepsRead = readSteps(dayStart: normalizedStart)
-        async let sleepRead = readSleep(dayStart: normalizedStart)
+    func readDay(_ dayStart: Date, timezoneIdentifier: String) async -> DaySummary {
+        let normalizedStart = AppDate.dayStart(
+            dayStart,
+            timezoneIdentifier: timezoneIdentifier
+        )
+        async let stepsRead = readSteps(
+            dayStart: normalizedStart,
+            timezoneIdentifier: timezoneIdentifier
+        )
+        async let sleepRead = readSleep(
+            dayStart: normalizedStart,
+            timezoneIdentifier: timezoneIdentifier
+        )
         let (steps, sleep) = await (stepsRead, sleepRead)
         return DaySummary(
-            localDate: AppDate.localDate(normalizedStart),
+            localDate: AppDate.localDate(
+                normalizedStart,
+                timezoneIdentifier: timezoneIdentifier
+            ),
+            timezone: timezoneIdentifier,
             steps: steps.value,
             stepsCoverage: steps.coverage,
             sleepIntervals: sleep.intervals,
@@ -126,8 +139,12 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         }
     }
 
-    private func readSteps(dayStart: Date) async -> StepsRead {
-        let end = AppDate.addingDays(1, to: dayStart)
+    private func readSteps(dayStart: Date, timezoneIdentifier: String) async -> StepsRead {
+        let end = AppDate.addingDays(
+            1,
+            to: dayStart,
+            timezoneIdentifier: timezoneIdentifier
+        )
         async let total = readStepTotal(dayStart: dayStart, end: end)
         async let sources = readStepSources(dayStart: dayStart, end: end)
         let (value, stepSources) = await (total, sources)
@@ -192,14 +209,23 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         }
     }
 
-    private func readSleep(dayStart: Date) async -> SleepRead {
-        let windowStart = AppDate.calendar.date(
+    private func readSleep(dayStart: Date, timezoneIdentifier: String) async -> SleepRead {
+        let calendar = AppDate.calendar(timezoneIdentifier: timezoneIdentifier)
+        let windowStart = calendar.date(
             bySettingHour: 12,
             minute: 0,
             second: 0,
-            of: AppDate.addingDays(-1, to: dayStart)
+            of: AppDate.addingDays(
+                -1,
+                to: dayStart,
+                timezoneIdentifier: timezoneIdentifier
+            )
         )!
-        let windowEnd = AppDate.addingDays(1, to: dayStart)
+        let windowEnd = AppDate.addingDays(
+            1,
+            to: dayStart,
+            timezoneIdentifier: timezoneIdentifier
+        )
         let predicate = HKQuery.predicateForSamples(
             withStart: windowStart,
             end: windowEnd,
@@ -225,7 +251,8 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
                         && Self.isAssignedToSleepDay(
                             start: sample.startDate,
                             end: sample.endDate,
-                            dayStart: dayStart
+                            dayStart: dayStart,
+                            timezoneIdentifier: timezoneIdentifier
                         )
                 }
                 guard !daySamples.isEmpty else {
@@ -274,8 +301,15 @@ final class HealthKitClient: HealthDataReading, @unchecked Sendable {
         }
     }
 
-    static func isAssignedToSleepDay(start: Date, end: Date, dayStart: Date) -> Bool {
-        end > start && AppDate.localDate(end) == AppDate.localDate(dayStart)
+    static func isAssignedToSleepDay(
+        start: Date,
+        end: Date,
+        dayStart: Date,
+        timezoneIdentifier: String = AppDate.legacyTimezoneIdentifier
+    ) -> Bool {
+        end > start
+            && AppDate.localDate(end, timezoneIdentifier: timezoneIdentifier)
+                == AppDate.localDate(dayStart, timezoneIdentifier: timezoneIdentifier)
     }
 
     private static func sourcePayload(_ sample: HKSample) -> HealthSourcePayload {

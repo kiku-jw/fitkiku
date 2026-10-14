@@ -21,6 +21,9 @@ final class FitKikuAppDelegate: NSObject, UIApplicationDelegate {
         super.init()
     }
 
+    func applicationProtectedDataDidBecomeAvailable(_ application: UIApplication) {
+        Task { await model.retryDeferredObserverSyncAfterUnlock() }
+    }
 }
 
 @main

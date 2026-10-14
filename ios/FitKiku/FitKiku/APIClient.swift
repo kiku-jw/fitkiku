@@ -313,7 +313,7 @@ enum PairingPayload: Equatable, Sendable {
 }
 
 struct APIClient: AppTransport, Sendable {
-    private static let applicationVersion = "native/1.1"
+    private static let applicationVersion = "native/1.2"
     private static let pairingTokenLength = 43 ... 128
     private static let publicShareHost = "kikuai.dev"
     private static let publicSharePathPrefix = "/fitkiku-health/"

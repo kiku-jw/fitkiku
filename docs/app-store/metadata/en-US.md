@@ -1,10 +1,11 @@
 # FitKiku App Store Metadata — English (U.S.)
 
-> Document class: release input. This records the released version 1.0
-> metadata and the separate version 1.1 candidate. Build `1.0 (3)` passed
-> review and is publicly available free in the configured non-EU storefronts.
-> Apple's public catalog reports a 2026-08-27 release date for App ID
-> `6801516904`. EU-27 storefronts remain disabled. Never commit reviewer
+> Document class: release input. This records released version 1.0, the
+> separate version 1.1 candidate, and the isolated version 1.2 update. Build
+> `1.0 (3)` passed review and is publicly available free in the configured
+> non-EU storefronts. The public 1.2 implementation at `91a9f72` passes local
+> and GitHub verification but is not merged, installed, archived, uploaded,
+> reviewed, released, or available in EU storefronts. Never commit reviewer
 > credentials or a live Pair Link here.
 
 ## App information
@@ -127,7 +128,7 @@ personal AI agents.
 - Disconnect and revoke future access at any time.
 - Delete anonymous synced FitKiku data without changing Apple Health.
 
-## Next-version release-note candidate
+## Version 1.1 release-note candidate
 
 - Leads with the result: let your AI use recent Steps and Sleep without daily
   retyping.
@@ -140,6 +141,21 @@ personal AI agents.
   reads, at most once per app version.
 - Declares the existing app-only `UserDefaults` use with Apple's `CA92.1`
   required-reason API code in the bundled privacy manifest.
+
+## Version 1.2 release-note candidate
+
+FitKiku now keeps daily summaries aligned to the timezone shown when you
+connect.
+
+- Review the daily timezone before approving a new connection and later in
+  Settings.
+- Use one consistent day boundary for Steps, Sleep, freshness, and missing-day
+  checks.
+- Keep an existing connection stable while traveling instead of silently
+  regrouping already shared days.
+- Reconnect deliberately when you want a new timezone boundary.
+- Improve cross-zone and daylight-saving-time handling without requesting
+  location access or adding another Health category.
 
 ## App Privacy candidate
 
@@ -202,6 +218,27 @@ shown as Unknown rather than as zero.
 The app is free and contains no purchase, subscription, advertising, or
 tracking flow. Do not mention the planned hosted-gateway price unless that
 service and its review position are finalized.
+
+### Version 1.1 connection delta
+
+For the exact 1.1 candidate, the primary path starts inside FitKiku under
+**Connect ChatGPT**. The app creates an anonymous connection and shows its
+read-only private-link consent before any Health transfer. No external Pair
+Link, account, password, sample file, or demo credential is required. The
+reviewer separately grants Steps and Sleep read access, performs a foreground
+sync, and may replace, revoke, or delete the anonymous connection in Settings.
+
+### Version 1.2 timezone delta
+
+Version 1.2 also displays one validated IANA timezone in the connection consent
+preview and in Settings. FitKiku reads the identifier from the iPhone system
+timezone; it does not request location permission or collect GPS data. The
+timezone remains fixed for that connection and is used consistently for
+HealthKit day windows, Sleep wake-date attribution, signed daily payloads,
+freshness, missing-day checks, and the seven-day agent summary. To choose a new
+day boundary, the user revokes or deletes the current connection and approves a
+new one. Features and content otherwise remain consistent across enabled
+regions.
 
 ### Required private App Store Connect inputs
 

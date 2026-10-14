@@ -39,16 +39,24 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
     private var observerStartCount = 0
     private var observerStopCount = 0
     private var dayReadCount = 0
+    private var syntheticSteps: Int?
     private var observerAction: (@Sendable () async -> Void)?
 
     func requestAuthorization() async throws {}
 
-    func readDay(_ dayStart: Date) async -> DaySummary {
-        lock.withLock { dayReadCount += 1 }
+    func readDay(_ dayStart: Date, timezoneIdentifier: String) async -> DaySummary {
+        let steps = lock.withLock {
+            dayReadCount += 1
+            return syntheticSteps
+        }
         return DaySummary(
-            localDate: AppDate.localDate(dayStart),
-            steps: nil,
-            stepsCoverage: .unknown,
+            localDate: AppDate.localDate(
+                dayStart,
+                timezoneIdentifier: timezoneIdentifier
+            ),
+            timezone: timezoneIdentifier,
+            steps: steps,
+            stepsCoverage: steps == nil ? .unknown : .complete,
             sleepIntervals: [],
             sleepCoverage: .unknown,
             sources: []
@@ -90,6 +98,27 @@ private final class PairingTestHealthReader: HealthDataReading, @unchecked Senda
         let action = lock.withLock { observerAction }
         await action?()
     }
+
+    func setSyntheticSteps(_ steps: Int) {
+        lock.withLock { syntheticSteps = steps }
+    }
+}
+
+private final class ProtectedDataAvailabilityProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var available: Bool
+
+    init(_ available: Bool) {
+        self.available = available
+    }
+
+    func isAvailable() -> Bool {
+        lock.withLock { available }
+    }
+
+    func setAvailable(_ available: Bool) {
+        lock.withLock { self.available = available }
+    }
 }
 
 private actor PairingTestTransport: AppTransport {
@@ -109,7 +138,11 @@ private actor PairingTestTransport: AppTransport {
     private var shareOperationsFail = false
     private var shouldBlockDeviceStatus = false
     private var deviceStatusContinuation: CheckedContinuation<Void, Never>?
+    private var shouldBlockIngest = false
+    private var ingestContinuation: CheckedContinuation<Void, Never>?
+    private var ingestStartedContinuation: CheckedContinuation<Void, Never>?
     private var lastPairTimezone: String?
+    private var ingestedTimezones: [String] = []
 
     func pair(baseURL _: URL, code _: String, installationID _: String) async throws -> String {
         "legacy-device-credential"
@@ -126,9 +159,17 @@ private actor PairingTestTransport: AppTransport {
     func ingest(
         baseURL _: URL,
         credential _: String,
-        snapshot _: HealthSnapshotPayload
+        snapshot: HealthSnapshotPayload
     ) async throws -> String {
         ingestCount += 1
+        ingestedTimezones.append(snapshot.timezone)
+        if shouldBlockIngest {
+            await withCheckedContinuation { continuation in
+                ingestContinuation = continuation
+                ingestStartedContinuation?.resume()
+                ingestStartedContinuation = nil
+            }
+        }
         if ingestFails {
             throw APIClientError.transport
         }
@@ -244,6 +285,10 @@ private actor PairingTestTransport: AppTransport {
         ingestFails = true
     }
 
+    func allowIngest() {
+        ingestFails = false
+    }
+
     func failShareOperations() {
         shareOperationsFail = true
     }
@@ -262,6 +307,21 @@ private actor PairingTestTransport: AppTransport {
         deviceStatusContinuation = nil
     }
 
+    func blockIngest() {
+        shouldBlockIngest = true
+    }
+
+    func waitForBlockedIngest() async {
+        guard ingestContinuation == nil else { return }
+        await withCheckedContinuation { ingestStartedContinuation = $0 }
+    }
+
+    func releaseIngest() {
+        shouldBlockIngest = false
+        ingestContinuation?.resume()
+        ingestContinuation = nil
+    }
+
     func counts() -> (preview: Int, pair: Int, revoke: Int, delete: Int, status: Int, ingest: Int) {
         (previewCount, agentPairCount, revokeCount, deleteCount, statusCount, ingestCount)
     }
@@ -272,6 +332,10 @@ private actor PairingTestTransport: AppTransport {
 
     func pairedTimezone() -> String? {
         lastPairTimezone
+    }
+
+    func snapshotTimezones() -> [String] {
+        ingestedTimezones
     }
 }
 
@@ -480,7 +544,7 @@ final class APIClientTests: XCTestCase {
         )
         XCTAssertEqual(object["pairing_token"] as? String, validToken)
         XCTAssertEqual(object["installation_id"] as? String, "fixture-installation-0001")
-        XCTAssertEqual(object["app_version"] as? String, "native/1.1")
+        XCTAssertEqual(object["app_version"] as? String, "native/1.2")
         XCTAssertEqual(object["timezone"] as? String, "America/Toronto")
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
     }
@@ -919,15 +983,45 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
-    func testPublicGuestPairingUsesTheSnapshotTimezone() async throws {
-        let harness = try makeModelHarness()
+    func testPublicGuestPairingCapturesTheSystemTimezone() async throws {
+        let harness = try makeModelHarness(systemTimezoneIdentifier: "Europe/Paris")
         defer { harness.cleanup() }
 
         await harness.model.loadPairingInput(agentLink(token: validToken))
         await harness.model.approveAgentPairing()
 
         let pairedTimezone = await harness.transport.pairedTimezone()
-        XCTAssertEqual(pairedTimezone, AppDate.timezoneIdentifier)
+        XCTAssertEqual(pairedTimezone, "Europe/Paris")
+        XCTAssertEqual(harness.model.connectionTimezoneIdentifier, "Europe/Paris")
+    }
+
+    @MainActor
+    func testRestoredConnectionKeepsItsTimezoneAfterSystemTimezoneChanges() async throws {
+        let harness = try makeModelHarness(systemTimezoneIdentifier: "Europe/Paris")
+        defer { harness.cleanup() }
+
+        await harness.model.loadPairingInput(agentLink(token: validToken))
+        await harness.model.approveAgentPairing()
+        await harness.model.requestHealthAccess()
+
+        let restartedModel = AppModel(
+            defaults: try XCTUnwrap(UserDefaults(suiteName: harness.suiteName)),
+            keychain: harness.keychain,
+            transport: harness.transport,
+            healthReader: harness.health,
+            outbox: try ProtectedOutbox(directory: harness.outboxDirectory),
+            stateStore: SyncStateStore(suiteName: harness.suiteName),
+            installHealthObserversAtLaunch: false,
+            protectedDataAvailable: { true },
+            systemTimezoneIdentifier: { "America/Toronto" }
+        )
+
+        await restartedModel.restore()
+
+        XCTAssertEqual(restartedModel.connectionTimezoneIdentifier, "Europe/Paris")
+        let timezones = await harness.transport.snapshotTimezones()
+        XCTAssertFalse(timezones.isEmpty)
+        XCTAssertTrue(timezones.allSatisfy { $0 == "Europe/Paris" })
     }
 
     @MainActor
@@ -1101,17 +1195,19 @@ final class APIClientTests: XCTestCase {
     }
 
     @MainActor
-    func testObserverSkipsHealthReadsWhileProtectedDataIsUnavailable() async throws {
+    func testObserverDefersHealthReadsUntilProtectedDataIsAvailable() async throws {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         defaults.removePersistentDomain(forName: suiteName)
         defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
         let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
         try keychain.saveCredential("restored-device-credential")
         _ = try keychain.installationID()
         let transport = PairingTestTransport()
         let health = PairingTestHealthReader()
+        let protectedData = ProtectedDataAvailabilityProbe(false)
         let outboxDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(identifier, isDirectory: true)
         let model = AppModel(
@@ -1121,7 +1217,7 @@ final class APIClientTests: XCTestCase {
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
             stateStore: SyncStateStore(suiteName: suiteName),
-            protectedDataAvailable: { false }
+            protectedDataAvailable: { protectedData.isAvailable() }
         )
         defer {
             try? keychain.deleteCredential()
@@ -1131,10 +1227,156 @@ final class APIClientTests: XCTestCase {
 
         await health.triggerObserver()
 
+        let lockedReads = await health.dayReads()
+        let lockedCounts = await transport.counts()
+        XCTAssertEqual(lockedReads, 0)
+        XCTAssertEqual(lockedCounts.ingest, 0)
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        protectedData.setAvailable(true)
+        await model.retryDeferredObserverSyncAfterUnlock()
+
+        let unlockedReads = await health.dayReads()
+        let unlockedCounts = await transport.counts()
+        XCTAssertEqual(unlockedReads, 2)
+        XCTAssertEqual(unlockedCounts.ingest, 2)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        await model.retryDeferredObserverSyncAfterUnlock()
+        let repeatedReads = await health.dayReads()
+        let repeatedCounts = await transport.counts()
+        XCTAssertEqual(repeatedReads, 2)
+        XCTAssertEqual(repeatedCounts.ingest, 2)
+        XCTAssertFalse(model.isSyntheticDemo)
+    }
+
+    @MainActor
+    func testFinishingObserverDoesNotEraseNewLockedObserverRetry() async throws {
+        let protectedData = ProtectedDataAvailabilityProbe(true)
+        let harness = try makeColdObserverHarness(protectedData: protectedData)
+        defer { harness.cleanup() }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        await harness.transport.blockIngest()
+        let firstObserver = Task { await harness.health.triggerObserver() }
+        await harness.transport.waitForBlockedIngest()
+
+        protectedData.setAvailable(false)
+        await harness.health.triggerObserver()
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+        await harness.transport.releaseIngest()
+        await firstObserver.value
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        protectedData.setAvailable(true)
+        await harness.model.retryDeferredObserverSyncAfterUnlock()
+        let reads = await harness.health.dayReads()
+        XCTAssertEqual(reads, 4)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+    }
+
+    @MainActor
+    func testBusyObserverKeepsRetryPendingUntilNextOpportunity() async throws {
+        let protectedData = ProtectedDataAvailabilityProbe(true)
+        let harness = try makeColdObserverHarness(protectedData: protectedData)
+        defer { harness.cleanup() }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        await harness.transport.blockIngest()
+        let firstObserver = Task { await harness.health.triggerObserver() }
+        await harness.transport.waitForBlockedIngest()
+
+        await harness.health.triggerObserver()
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+        await harness.transport.releaseIngest()
+        await firstObserver.value
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        await harness.model.retryDeferredObserverSyncAfterUnlock()
+        let reads = await harness.health.dayReads()
+        XCTAssertEqual(reads, 4)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+    }
+
+    @MainActor
+    func testQueuedObserverRetainsDeferredRetry() async throws {
+        let protectedData = ProtectedDataAvailabilityProbe(true)
+        let harness = try makeColdObserverHarness(protectedData: protectedData)
+        defer { harness.cleanup() }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        await harness.transport.failIngest()
+        await harness.health.triggerObserver()
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+    }
+
+    @MainActor
+    func testQueuedRecoveryKeepsNewHealthCollectionPending() async throws {
+        let protectedData = ProtectedDataAvailabilityProbe(true)
+        let harness = try makeColdObserverHarness(protectedData: protectedData)
+        defer { harness.cleanup() }
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: harness.suiteName))
+        await harness.transport.failIngest()
+        await harness.health.triggerObserver()
+        let initialReads = await harness.health.dayReads()
+        XCTAssertEqual(initialReads, 2)
+
+        protectedData.setAvailable(false)
+        harness.health.setSyntheticSteps(1000)
+        await harness.health.triggerObserver()
+        await harness.transport.allowIngest()
+        protectedData.setAvailable(true)
+        await harness.model.retryDeferredObserverSyncAfterUnlock()
+        let recoveryOnlyReads = await harness.health.dayReads()
+        XCTAssertEqual(recoveryOnlyReads, initialReads)
+        XCTAssertTrue(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+
+        await harness.model.retryDeferredObserverSyncAfterUnlock()
+        let refreshedReads = await harness.health.dayReads()
+        let counts = await harness.transport.counts()
+        XCTAssertEqual(refreshedReads, 4)
+        XCTAssertEqual(counts.ingest, 6) // failed old values, recovered old values, fresh values
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
+    }
+
+    @MainActor
+    func testDeferredObserverRetryCannotSendAfterServerRevocation() async throws {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
+        defaults.set(true, forKey: "healthkit.local-credential-cleanup-pending")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("revoked-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let protectedData = ProtectedDataAvailabilityProbe(false)
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { protectedData.isAvailable() }
+        )
+        defer {
+            try? keychain.deleteCredential()
+            defaults.removePersistentDomain(forName: suiteName)
+            try? FileManager.default.removeItem(at: outboxDirectory)
+        }
+
+        await health.triggerObserver()
+        protectedData.setAvailable(true)
+        await model.retryDeferredObserverSyncAfterUnlock()
+
         let reads = await health.dayReads()
         let counts = await transport.counts()
         XCTAssertEqual(reads, 0)
         XCTAssertEqual(counts.ingest, 0)
+        XCTAssertFalse(defaults.bool(forKey: "healthkit.deferred-observer-sync"))
         XCTAssertFalse(model.isSyntheticDemo)
     }
 
@@ -1718,7 +1960,8 @@ final class APIClientTests: XCTestCase {
     @MainActor
     private func makeModelHarness(
         shareStorageFault: ShareStorageFault? = nil,
-        protectedDataAvailable: @escaping @Sendable () async -> Bool = { true }
+        protectedDataAvailable: @escaping @Sendable () async -> Bool = { true },
+        systemTimezoneIdentifier: String = "Europe/Paris"
     ) throws -> ModelHarness {
         let identifier = UUID().uuidString
         let suiteName = "FitKikuTests.\(identifier)"
@@ -1744,7 +1987,8 @@ final class APIClientTests: XCTestCase {
             healthReader: health,
             outbox: try ProtectedOutbox(directory: outboxDirectory),
             stateStore: SyncStateStore(suiteName: suiteName),
-            protectedDataAvailable: protectedDataAvailable
+            protectedDataAvailable: protectedDataAvailable,
+            systemTimezoneIdentifier: { systemTimezoneIdentifier }
         )
         return ModelHarness(
             model: model,
@@ -1753,6 +1997,38 @@ final class APIClientTests: XCTestCase {
             health: health,
             suiteName: suiteName,
             outboxDirectory: outboxDirectory
+        )
+    }
+
+    @MainActor
+    private func makeColdObserverHarness(
+        protectedData: ProtectedDataAvailabilityProbe
+    ) throws -> ModelHarness {
+        let identifier = UUID().uuidString
+        let suiteName = "FitKikuTests.\(identifier)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defaults.set("https://fitkiku.example", forKey: "healthkit.server-address")
+        defaults.set(true, forKey: "healthkit.access-requested")
+        let keychain = KeychainStore(service: "com.kikuai.fitkiku.health.tests.\(identifier)")
+        try keychain.saveCredential("synthetic-device-credential")
+        _ = try keychain.installationID()
+        let transport = PairingTestTransport()
+        let health = PairingTestHealthReader()
+        let outboxDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(identifier, isDirectory: true)
+        let model = AppModel(
+            defaults: defaults,
+            keychain: keychain,
+            transport: transport,
+            healthReader: health,
+            outbox: try ProtectedOutbox(directory: outboxDirectory),
+            stateStore: SyncStateStore(suiteName: suiteName),
+            protectedDataAvailable: { protectedData.isAvailable() }
+        )
+        return ModelHarness(
+            model: model, keychain: keychain, transport: transport, health: health,
+            suiteName: suiteName, outboxDirectory: outboxDirectory
         )
     }
 }
