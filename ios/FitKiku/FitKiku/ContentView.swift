@@ -687,7 +687,7 @@ struct ContentView: View {
         guard model.isPaired else { return .connect }
         guard model.healthAccessRequested else { return .health }
         guard model.privateShareURL != nil,
-              model.deliveryStatus?.hasCurrentAgentRead == true
+              model.hasCurrentAgentRead
         else { return .share }
         return .ready
     }

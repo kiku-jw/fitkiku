@@ -31,11 +31,14 @@ final class AppModel: ObservableObject {
         static let lastSyncAt = "healthkit.last-sync-at"
         static let localCredentialCleanupPending = "healthkit.local-credential-cleanup-pending"
         static let connectionTimezone = "healthkit.connection-timezone"
+        static let privateShareCleanupPending = "healthkit.private-share-cleanup-pending"
     }
 
     private let defaults: UserDefaults
     private let keychain: KeychainStore
     private let deleteCredential: () throws -> Void
+    private let persistPrivateShareURL: (URL) throws -> Void
+    private let cleanupPrivateShareURL: () throws -> Void
     private let transport: any AppTransport
     private let health: (any HealthDataReading)?
     private let coordinator: SyncCoordinator?
@@ -50,6 +53,9 @@ final class AppModel: ObservableObject {
     private static let hostedServiceURL = URL(string: "https://fitkiku-origin.kikuai.dev")!
 
     var isSyntheticDemo: Bool { syntheticDemoRuntime }
+    var hasCurrentAgentRead: Bool {
+        deliveryStatusError == nil && deliveryStatus?.hasCurrentAgentRead == true
+    }
     var canDeleteAccount: Bool { isPaired && deliveryStatus?.canDeleteAccount == true }
     var pendingConnectionTimezoneIdentifier: String {
         pendingAgentConsent?.timezoneIdentifier ?? AppDate.legacyTimezoneIdentifier
@@ -62,6 +68,8 @@ final class AppModel: ObservableObject {
         self.defaults = defaults
         keychain = KeychainStore(service: "com.kikuai.fitkiku.synthetic-demo")
         deleteCredential = {}
+        persistPrivateShareURL = { _ in }
+        cleanupPrivateShareURL = {}
         transport = SyntheticDemoTransport()
         health = nil
         coordinator = nil
@@ -79,6 +87,8 @@ final class AppModel: ObservableObject {
         defaults: UserDefaults = .standard,
         keychain: KeychainStore = KeychainStore(),
         credentialCleanup: (() throws -> Void)? = nil,
+        shareURLPersistence: ((URL) throws -> Void)? = nil,
+        shareURLCleanup: (() throws -> Void)? = nil,
         transport: any AppTransport = APIClient(),
         healthReader: (any HealthDataReading)? = nil,
         outbox: ProtectedOutbox? = nil,
@@ -94,6 +104,8 @@ final class AppModel: ObservableObject {
         self.defaults = defaults
         self.keychain = keychain
         deleteCredential = credentialCleanup ?? { try keychain.deleteCredential() }
+        persistPrivateShareURL = shareURLPersistence ?? { try keychain.savePrivateShareURL($0) }
+        cleanupPrivateShareURL = shareURLCleanup ?? { try keychain.deletePrivateShareURL() }
         self.transport = transport
         self.protectedDataAvailable = protectedDataAvailable
         let deferredObserverSyncStore = DeferredObserverSyncStore(defaults: defaults)
@@ -199,7 +211,13 @@ final class AppModel: ObservableObject {
                 )
             )
             isPaired = true
-            privateShareURL = try keychain.privateShareURL()
+            if defaults.bool(forKey: DefaultsKey.privateShareCleanupPending) {
+                // Server rotation/revocation may have invalidated the persisted URL.
+                privateShareURL = nil
+                try? cleanupPrivateShareURL()
+            } else {
+                privateShareURL = try keychain.privateShareURL()
+            }
             if healthAccessRequested {
                 await registerObservers()
             }
@@ -233,12 +251,15 @@ final class AppModel: ObservableObject {
         else { return }
 
         await coordinator.configure(configuration)
-        _ = await coordinator.synchronize(
+        guard let revision = deferredObserverSyncStore.pendingRevision() else { return }
+        let results = await coordinator.synchronize(
             lookbackDays: 2,
             maxUploadAttempts: 1,
             stopAfterPendingRecovery: true
         )
-        deferredObserverSyncStore.clear()
+        Self.finishDeferredObserverSync(
+            results, revision: revision, store: deferredObserverSyncStore
+        )
     }
 
     func openPairLink(_ url: URL) async {
@@ -414,8 +435,9 @@ final class AppModel: ObservableObject {
                 installationID: installationID
             )
             guard outcome == "revoked" else { throw APIClientError.invalidResponse }
-            privateShareURL = nil
-            try keychain.deletePrivateShareURL()
+            invalidateStoredPrivateShareURL()
+            try cleanupPrivateShareURL()
+            defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
             statusMessage = String(localized: "Private AI link revoked. The iPhone connection remains active.")
         } catch {
             errorMessage = error.localizedDescription
@@ -478,8 +500,13 @@ final class AppModel: ObservableObject {
         errorMessage = nil
         statusMessage = nil
         defer { isBusy = false }
+        let pendingRevision = deferredObserverSyncStore.pendingRevision()
         let results = await coordinator.synchronize(lookbackDays: 7)
-        deferredObserverSyncStore.clear()
+        if let pendingRevision {
+            Self.finishDeferredObserverSync(
+                results, revision: pendingRevision, store: deferredObserverSyncStore
+            )
+        }
         lastResults = results
         await refreshSummaries()
         await refreshDeliveryStatus()
@@ -692,8 +719,8 @@ final class AppModel: ObservableObject {
             )
         )
         isPaired = true
-        privateShareURL = nil
-        try? keychain.deletePrivateShareURL()
+        invalidateStoredPrivateShareURL()
+        try? cleanupPrivateShareURL()
         await refreshDeliveryStatus()
         if healthAccessRequested {
             await registerObservers()
@@ -747,6 +774,7 @@ final class AppModel: ObservableObject {
         defaults.removeObject(forKey: DefaultsKey.localCredentialCleanupPending)
         defaults.removeObject(forKey: DefaultsKey.connectionTimezone)
         deferredObserverSyncStore.clear()
+        defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
         localCredentialCleanupPending = false
         connectionTimezoneIdentifier = nil
         privateShareURL = nil
@@ -763,7 +791,12 @@ final class AppModel: ObservableObject {
         }
         observersInstalled = false
         try deleteCredential()
-        try keychain.deletePrivateShareURL()
+        try cleanupPrivateShareURL()
+    }
+
+    private func invalidateStoredPrivateShareURL() {
+        defaults.set(true, forKey: DefaultsKey.privateShareCleanupPending)
+        privateShareURL = nil
     }
 
     private func rotatePrivateShareLinkUsingStoredDevice() async throws {
@@ -777,8 +810,12 @@ final class AppModel: ObservableObject {
             credential: credential,
             installationID: installationID
         )
-        try keychain.savePrivateShareURL(shareURL)
+        // Rotation succeeded remotely: the old URL must no longer be copyable.
+        invalidateStoredPrivateShareURL()
+        try cleanupPrivateShareURL()
+        try persistPrivateShareURL(shareURL)
         privateShareURL = shareURL
+        defaults.removeObject(forKey: DefaultsKey.privateShareCleanupPending)
     }
 
     private func registerObservers() async {
@@ -808,17 +845,33 @@ final class AppModel: ObservableObject {
     ) {
         health.installObservers { [weak coordinator] in
             guard let coordinator else { return }
-            deferredObserverSyncStore.markPending()
+            let revision = deferredObserverSyncStore.markPending()
             guard await protectedDataAvailable() else {
                 return
             }
-            _ = await coordinator.synchronize(
+            let results = await coordinator.synchronize(
                 lookbackDays: 2,
                 maxUploadAttempts: 1,
                 stopAfterPendingRecovery: true
             )
-            deferredObserverSyncStore.clear()
+            finishDeferredObserverSync(
+                results, revision: revision, store: deferredObserverSyncStore
+            )
         }
+    }
+
+    private nonisolated static func finishDeferredObserverSync(
+        _ results: [DaySyncResult],
+        revision: UInt64,
+        store: DeferredObserverSyncStore
+    ) {
+        // Recovery-only uploads have not collected a newer Health notification yet.
+        guard !results.isEmpty,
+              !results.contains(where: {
+                  $0.outcome == .failed || $0.outcome == .queued || $0.recoveredPendingOnly
+              })
+        else { return }
+        store.clear(ifUnchangedSince: revision)
     }
 
     private static func launchConfiguration(

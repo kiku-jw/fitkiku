@@ -288,6 +288,19 @@ struct DaySyncResult: Identifiable, Hashable, Sendable {
     let localDate: String
     let outcome: Outcome
     let message: String?
+    let recoveredPendingOnly: Bool
+
+    init(
+        localDate: String,
+        outcome: Outcome,
+        message: String?,
+        recoveredPendingOnly: Bool = false
+    ) {
+        self.localDate = localDate
+        self.outcome = outcome
+        self.message = message
+        self.recoveredPendingOnly = recoveredPendingOnly
+    }
 
     var id: String { localDate }
 }

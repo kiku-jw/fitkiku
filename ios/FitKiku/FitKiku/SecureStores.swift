@@ -159,6 +159,8 @@ final class DeferredObserverSyncStore: @unchecked Sendable {
     private let lock = NSLock()
     private let defaults: UserDefaults
     private let storageKey: String
+    // In-memory ordering only; persistent storage remains a health-free boolean.
+    private var revision: UInt64 = 0
 
     init(
         defaults: UserDefaults = .standard,
@@ -172,12 +174,31 @@ final class DeferredObserverSyncStore: @unchecked Sendable {
         lock.withLock { defaults.bool(forKey: storageKey) }
     }
 
-    func markPending() {
-        lock.withLock { defaults.set(true, forKey: storageKey) }
+    func pendingRevision() -> UInt64? {
+        lock.withLock { defaults.bool(forKey: storageKey) ? revision : nil }
+    }
+
+    @discardableResult
+    func markPending() -> UInt64 {
+        lock.withLock {
+            revision &+= 1
+            defaults.set(true, forKey: storageKey)
+            return revision
+        }
+    }
+
+    func clear(ifUnchangedSince expectedRevision: UInt64) {
+        lock.withLock {
+            guard revision == expectedRevision else { return }
+            defaults.removeObject(forKey: storageKey)
+        }
     }
 
     func clear() {
-        lock.withLock { defaults.removeObject(forKey: storageKey) }
+        lock.withLock {
+            revision &+= 1
+            defaults.removeObject(forKey: storageKey)
+        }
     }
 }
 

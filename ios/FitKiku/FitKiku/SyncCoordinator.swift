@@ -180,7 +180,8 @@ actor SyncCoordinator {
                     return DaySyncResult(
                         localDate: localDate,
                         outcome: resumed.outcome,
-                        message: nil
+                        message: nil,
+                        recoveredPendingOnly: true
                     )
                 }
             }

@@ -263,34 +263,18 @@ final class DaySummaryTests: XCTestCase {
         )
     }
 
-    func testParisCalendarUsesDSTLengthDays() throws {
-        let springReference = try XCTUnwrap(
-            AppDate.parseTimestamp("2026-03-29T12:00:00Z")
-        )
-        let springStart = AppDate.dayStart(
-            springReference,
-            timezoneIdentifier: "Europe/Paris"
-        )
-        let springNext = AppDate.addingDays(
-            1,
-            to: springReference,
-            timezoneIdentifier: "Europe/Paris"
-        )
-        XCTAssertEqual(springNext.timeIntervalSince(springStart), 23 * 60 * 60)
-
-        let autumnReference = try XCTUnwrap(
-            AppDate.parseTimestamp("2026-10-25T12:00:00Z")
-        )
-        let autumnStart = AppDate.dayStart(
-            autumnReference,
-            timezoneIdentifier: "Europe/Paris"
-        )
-        let autumnNext = AppDate.addingDays(
-            1,
-            to: autumnReference,
-            timezoneIdentifier: "Europe/Paris"
-        )
-        XCTAssertEqual(autumnNext.timeIntervalSince(autumnStart), 25 * 60 * 60)
+    func testParisAndTorontoCalendarUsesDSTLengthDays() throws {
+        for (timezone, timestamp, hours) in [
+            ("Europe/Paris", "2026-03-29T12:00:00Z", 23),
+            ("Europe/Paris", "2026-10-25T12:00:00Z", 25),
+            ("America/Toronto", "2026-03-08T12:00:00Z", 23),
+            ("America/Toronto", "2026-11-01T12:00:00Z", 25),
+        ] {
+            let reference = try XCTUnwrap(AppDate.parseTimestamp(timestamp))
+            let start = AppDate.dayStart(reference, timezoneIdentifier: timezone)
+            let next = AppDate.addingDays(1, to: reference, timezoneIdentifier: timezone)
+            XCTAssertEqual(next.timeIntervalSince(start), Double(hours * 60 * 60), timezone)
+        }
     }
 
     func testSameInstantHasDifferentParisAndTorontoLocalDates() throws {
