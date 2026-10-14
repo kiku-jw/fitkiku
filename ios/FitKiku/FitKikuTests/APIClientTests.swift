@@ -356,6 +356,22 @@ private final class ShareStorageFault {
 }
 
 @MainActor
+private final class ShareStorageFault {
+    var failSave = false
+    var failCleanup = false
+
+    func save(_ url: URL, keychain: KeychainStore) throws {
+        if failSave { throw APIClientError.transport }
+        try keychain.savePrivateShareURL(url)
+    }
+
+    func cleanup(keychain: KeychainStore) throws {
+        if failCleanup { throw APIClientError.transport }
+        try keychain.deletePrivateShareURL()
+    }
+}
+
+@MainActor
 private final class FailOnceCredentialCleanup {
     private(set) var attempts = 0
 
